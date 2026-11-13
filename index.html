@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의록 작성 툴</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="회의록">
+<style>
+:root{
+  --navy:#1F3864; --navy2:#2E4C82; --label:#E8EDF5; --line:#7F8FA6; --line2:#D5DBE5;
+  --bg:#F3F5F9; --text:#1E2430; --muted:#8A93A3; --ok:#2E7D5B; --warn:#C47F17; --red:#C0392B; --gold:#F2B544;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"맑은 고딕","Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+button,input,select,textarea{font-family:inherit;font-size:13px}
+
+.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:8px;padding:10px 18px;flex-wrap:wrap}
+.top h1{font-size:17px;margin:0 14px 0 0;letter-spacing:1px}
+.top .sp{flex:1}
+.top button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:7px 12px;cursor:pointer}
+.top button:hover{background:rgba(255,255,255,.22)}
+.top button.pri{background:#fff;color:var(--navy);font-weight:700;border-color:#fff}
+.top button.done{background:var(--gold);border-color:var(--gold);color:#1F2A3D;font-weight:700}
+.status{font-size:12px;opacity:.8;margin-right:6px}
+
+.wrap{display:grid;grid-template-columns:minmax(460px,1fr) minmax(480px,820px);gap:18px;padding:18px;align-items:start}
+
+.form{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
+.card{background:#fff;border:1px solid var(--line2);border-radius:10px;padding:14px 16px}
+.card h2{font-size:14px;color:var(--navy);margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h2 .n{background:var(--navy);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+.card h2 .act{margin-left:auto;display:flex;gap:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;color:var(--muted);font-weight:600}
+input,select,textarea{border:1px solid var(--line2);border-radius:6px;padding:7px 9px;background:#fff;color:var(--text);width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 2px rgba(46,76,130,.12)}
+textarea{resize:vertical;min-height:38px;line-height:1.5}
+.timebox{display:flex;gap:6px;align-items:center}
+.timebox span{color:var(--muted)}
+
+.btn{border:1px solid var(--line2);background:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--navy);font-weight:600}
+.btn:hover{background:var(--label)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn.lib{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.lib:hover{background:var(--navy2)}
+.btn.del{color:var(--muted);border:none;background:none;font-size:16px;padding:2px 6px}
+.btn.del:hover{color:var(--red);background:none}
+.btn.star{color:#C9CFDA;border:none;background:none;font-size:17px;padding:2px 4px}
+.btn.star:hover{color:var(--gold);background:none}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+.typebar{display:flex;flex-wrap:wrap;gap:6px}
+.typebar button{border:1px solid var(--line2);background:#fff;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;color:#4A5568}
+.typebar button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.stagebox{background:#F6F8FC;border:1px solid var(--line2);border-left:3px solid var(--navy);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.6;margin-top:8px;color:#3A4558}
+.stagebox b{color:var(--navy)}
+.kw{display:inline-block;background:#fff;border:1px solid var(--line2);border-radius:10px;padding:0 7px;margin:1px 2px;font-size:11px;color:var(--navy2)}
+
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:6px;align-items:flex-start}
+.row .no{width:22px;flex:none;text-align:center;color:var(--muted);padding-top:8px;font-size:12px}
+.row.disc-row{display:grid;grid-template-columns:22px 170px 1fr 30px;gap:6px}
+.row.dec-row{display:grid;grid-template-columns:22px 84px 1fr 30px;gap:6px}
+.row.act-row{display:grid;grid-template-columns:22px 120px 140px 92px 1fr 30px;grid-template-areas:"no t t t t del" ". who due st note .";gap:6px;padding-bottom:8px;border-bottom:1px dashed var(--line2)}
+.act-row .no{grid-area:no}.act-row .a-t{grid-area:t}.act-row .a-who{grid-area:who}.act-row .a-due{grid-area:due}.act-row .a-st{grid-area:st}.act-row .a-note{grid-area:note}.act-row .a-del{grid-area:del}
+.empty{color:var(--muted);font-size:12px;padding:6px 0}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line2);border-radius:6px;padding:6px;min-height:38px;align-items:center}
+.chip{background:var(--label);color:var(--navy);border-radius:14px;padding:3px 6px 3px 10px;font-size:12px;display:flex;align-items:center;gap:2px}
+.chip button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 3px}
+.chip button:hover{color:var(--red)}
+.chips input{border:none;flex:1;min-width:120px;padding:3px}
+.chips input:focus{box-shadow:none}
+.quick{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.quick button{border:1px dashed var(--line2);background:#fff;border-radius:12px;padding:2px 9px;font-size:11px;color:var(--muted);cursor:pointer}
+.quick button:hover{border-color:var(--navy2);color:var(--navy)}
+
+.pv-wrap{position:sticky;top:64px}
+.pv-label{font-size:12px;color:var(--muted);margin:0 0 6px 2px}
+.paper{background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.08);border-radius:4px;padding:40px 46px;min-height:1000px}
+.doc{font-size:12.5px;color:#000}
+.doc .title{text-align:center;font-size:24px;font-weight:700;color:var(--navy);letter-spacing:10px;margin:0 0 18px}
+.doc table{width:100%;border-collapse:collapse;table-layout:fixed}
+.doc td,.doc th{border:1px solid var(--line);padding:6px 8px;vertical-align:middle;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap}
+.doc th{background:var(--label);font-weight:700;text-align:center}
+.doc td.c{text-align:center}
+.doc h3{font-size:14px;color:var(--navy);border-bottom:1.5px solid var(--navy);padding-bottom:3px;margin:18px 0 8px}
+.doc ol{margin:0;padding-left:20px}
+.doc ol li{margin:3px 0}
+.doc .ph{color:#bbb}
+.st{display:inline-block;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700}
+.st.예정{background:#EEF1F6;color:#5A6577}
+.st.진행{background:#FFF4E0;color:var(--warn)}
+.st.완료,.st.확정{background:#E3F3EC;color:var(--ok)}
+.st.보류{background:#F7E6E4;color:var(--red)}
+.st.보완{background:#FFF4E0;color:var(--warn)}
+
+.modal{position:fixed;inset:0;background:rgba(15,25,45,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal.on{display:flex}
+.mbox{background:#fff;border-radius:12px;width:min(820px,94vw);max-height:88vh;display:flex;flex-direction:column}
+.mhead{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;gap:10px;align-items:center}
+.mhead h3{margin:0;font-size:15px;color:var(--navy);flex:none}
+.mbody{overflow:auto;padding:10px 18px 16px;flex:1}
+.mfoot{padding:12px 18px;border-top:1px solid var(--line2);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.list{width:100%;border-collapse:collapse}
+.list th,.list td{border-bottom:1px solid var(--line2);padding:9px 6px;text-align:left;font-size:13px}
+.list th{color:var(--muted);font-size:12px;font-weight:600}
+.list tr.item:hover{background:#F7F9FC;cursor:pointer}
+.list .ops{white-space:nowrap;text-align:right}
+
+.libitem{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line2);border-radius:8px;padding:10px 12px;margin-top:8px;cursor:pointer}
+.libitem:hover{border-color:var(--navy2)}
+.libitem.sel{border-color:var(--navy);background:#F4F7FC}
+.libitem input[type=checkbox]{width:18px;height:18px;min-height:0;flex:none;margin-top:2px;accent-color:var(--navy)}
+.libitem .tt{font-weight:700;color:var(--navy);font-size:13px}
+.libitem ul{margin:4px 0 0;padding-left:16px;font-size:12px;color:#4A5568;line-height:1.55}
+.libitem .mine{font-size:10px;background:var(--gold);color:#1F2A3D;border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:700}
+.libitem .ops{margin-left:auto;display:flex;gap:4px;flex:none}
+.editbox{border:1.5px dashed var(--navy2);border-radius:8px;padding:12px;margin-top:10px;background:#FAFBFE;display:none}
+.editbox.on{display:block}
+.editbox .grid2{margin-bottom:8px}
+.chk{display:flex;align-items:center;gap:6px;font-size:12px;color:#4A5568;cursor:pointer}
+.chk input{width:16px;height:16px;min-height:0;accent-color:var(--navy)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+.toast.on{opacity:1}
+
+/* ---- tablet / touch ---- */
+.mtabs{display:none}
+@container (max-width:520px){
+  .row.act-row{grid-template-columns:22px 1fr 1.2fr 86px 30px;grid-template-areas:"no t t t del" ". who due st ." ". note note note ."}
+}
+@container (max-width:800px){
+  .row.disc-row{grid-template-columns:22px 1fr 40px;grid-template-areas:"no a del" ". t t"}
+  .disc-row .no{grid-area:no}.disc-row .d-a{grid-area:a}.disc-row .d-t{grid-area:t}.disc-row .d-del{grid-area:del}
+}
+@media (max-width:1100px){
+  .wrap{grid-template-columns:1fr}
+  .top{position:relative}
+  body{padding-bottom:78px}
+  .toast{bottom:92px}
+  .mtabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;gap:8px;background:var(--navy);padding:9px 14px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.15)}
+  .mtabs button{flex:1;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-weight:700;padding:12px;font-size:15px;border-radius:8px}
+  .mtabs button.on{background:#fff;color:var(--navy)}
+  .mtabs .m-save{flex:0 0 auto;background:#fff;color:var(--navy);border-color:#fff}
+  .mtabs .m-done{flex:0 0 auto;background:var(--gold);color:#1F2A3D;border-color:var(--gold)}
+  body[data-view=form] .pv-wrap{display:none}
+  body[data-view=preview] .form{display:none}
+  .pv-wrap{position:static}
+  .paper{padding:28px 26px;min-height:0}
+}
+@media (max-width:1350px){.paper{padding:30px 30px}}
+@media (pointer:coarse){
+  input,select,textarea{font-size:16px;padding:10px 11px;min-height:44px}
+  .btn{padding:8px 14px}
+  .btn.sm{padding:8px 14px;font-size:14px}
+  .btn.del,.btn.star{font-size:24px;padding:4px 8px;min-height:44px}
+  .top button{padding:10px 13px;font-size:14px}
+  .chip{font-size:14px;padding:5px 6px 5px 12px}
+  .chip button{font-size:20px;padding:0 6px}
+  .quick button,.typebar button{font-size:14px;padding:8px 14px}
+  .row .no{padding-top:12px}
+  .list td,.list th{padding:12px 6px}
+  .libitem{padding:14px}
+  .libitem input[type=checkbox]{width:22px;height:22px}
+  .chk input{width:20px;height:20px}
+  .a-due{padding-left:8px;padding-right:6px}
+}
+@media print{
+  @page{size:A4;margin:14mm}
+  body{background:#fff;padding:0}
+  .top,.form,.pv-label,.modal,.toast,.mtabs{display:none!important}
+  .wrap{display:block;padding:0}
+  .pv-wrap{position:static;display:block!important}
+  .paper{box-shadow:none;padding:0;min-height:0}
+  .doc .ph{color:transparent}
+  .doc th,.st{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .doc table,.doc h3{break-inside:avoid}
+}
+</style>
+</head>
+<body data-view="form">
+
+<div class="top">
+  <h1>회의록 작성 툴</h1>
+  <button onclick="newDoc()">＋ 새 회의록</button>
+  <button onclick="openList()">📂 저장 목록</button>
+  <button onclick="importOpen()">↺ 미완료 할 일 가져오기</button>
+  <span class="sp"></span>
+  <span class="status" id="status"></span>
+  <button id="installBtn" style="display:none" onclick="installApp()">⬇ 앱으로 설치</button>
+  <button class="pri" onclick="saveDoc()">💾 저장</button>
+  <button class="done" onclick="finishDoc()">✅ 작성 완료 · 한글 받기</button>
+  <button onclick="window.print()">🖨 인쇄 / PDF</button>
+  <button onclick="exportWord()">W 워드로 받기</button>
+  <button onclick="copyText()">📋 텍스트 복사</button>
+</div>
+<div class="mtabs"><button id="tabForm" class="on" onclick="setView('form')">✏️ 작성</button><button id="tabPrev" onclick="setView('preview')">📄 미리보기</button><button class="m-save" onclick="saveDoc()">💾 저장</button><button class="m-done" onclick="finishDoc()">✅ 완료 · 한글</button></div>
+
+<div class="wrap">
+  <div class="form">
+    <div class="card">
+      <h2><span class="n">i</span>기본 정보</h2>
+      <div class="grid2">
+        <div class="field full"><label>회의 유형</label><div class="typebar" id="typebar"></div><div id="stageInfo"></div></div>
+        <div class="field full"><label>회의명</label><input id="title" placeholder="회의" list="titleList" autocomplete="off"><datalist id="titleList"></datalist></div>
+        <div class="field full"><label>회의 목적</label><input id="purpose" placeholder="이번 회의로 정하려는 것 (예: 적정 분양가 범위 확정)" autocomplete="off"></div>
+        <div class="field"><label>날짜</label><input type="date" id="date"></div>
+        <div class="field"><label>시간</label><div class="timebox"><input type="time" id="start"><span>~</span><input type="time" id="end"></div></div>
+        <div class="field"><label>장소</label><input id="place" placeholder="예) 현장 사무실"></div>
+        <div class="field"><label>주관</label><input id="host" placeholder="예) 분양팀"></div>
+        <div class="field"><label>작성자</label><input id="writer"></div>
+        <div class="field full"><label>참석자 <span style="font-weight:400">(이름 입력 후 Enter)</span></label>
+          <div class="chips" id="chips" onclick="document.getElementById('chipIn').focus()"><form id="chipForm" style="display:contents" onsubmit="event.preventDefault();addPeople(chipIn.value);chipIn.value=''"><input id="chipIn" placeholder="이름 입력 후 Enter" enterkeyhint="done" autocomplete="off"><button class="btn sm" type="submit">추가</button></form></div>
+          <div class="quick" id="quick"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">1</span>회의 안건<span class="act"><button class="btn sm lib" onclick="openLib()">📚 안건 불러오기</button><button class="btn sm" onclick="addItem('agenda')">＋ 직접 추가</button></span></h2>
+      <div class="rows" id="agenda"></div>
+      <div class="hint">☆를 누르면 직접 쓴 안건이 현재 회의 유형의 「내 안건」으로 저장돼 다음에도 불러올 수 있어요.</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">2</span>논의 내용<span class="act"><button class="btn sm" onclick="addItem('disc')">＋ 추가</button></span></h2>
+      <div class="rows" id="disc"></div>
+      <div class="hint">핵심 의견과 쟁점만 키워드로 적어도 충분해요. 안건 칸은 위에서 입력한 안건 중에서 고를 수 있어요.</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">3</span>결정 사항<span class="act"><button class="btn sm" onclick="addItem('dec')">＋ 추가</button></span></h2>
+      <div class="rows" id="dec"></div>
+      <div class="hint">확정: 그대로 진행 / 보완: 조건부·추가 검토 후 확정 / 보류: 다음 회의로 넘김</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">4</span>향후 조치 사항 (할 일)<span class="act"><button class="btn sm" onclick="addItem('act')">＋ 추가</button></span></h2>
+      <div class="rows" id="act"></div>
+      <div class="hint">담당자 칸에 참석자 이름이 추천으로 떠요. 다음 회의 때 「미완료 할 일 가져오기」로 이어받을 수 있어요.</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">5</span>다음 회의</h2>
+      <div class="grid2">
+        <div class="field"><label>날짜</label><input type="date" id="nDate"></div>
+        <div class="field"><label>시간</label><input type="time" id="nTime"></div>
+        <div class="field full"><label>안건</label><textarea id="nAgenda" rows="2" placeholder="이번 회의에서 이어서 다룰 내용"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="n">6</span>기타</h2>
+      <textarea id="etc" rows="3" placeholder="특이사항, 첨부자료 등"></textarea>
+    </div>
+
+    <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:12px;color:var(--muted);flex:1">백업 (회의록 + 내 안건 · 다른 기기로 옮기거나 보관할 때)</span>
+      <button class="btn sm" onclick="backup()">전체 백업 받기</button>
+      <button class="btn sm" onclick="document.getElementById('restoreFile').click()">백업 불러오기</button>
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restore(this)">
+    </div>
+  </div>
+
+  <div class="pv-wrap">
+    <p class="pv-label">미리보기 · 인쇄하면 이 화면만 출력됩니다</p>
+    <div class="paper"><div class="doc" id="doc"></div></div>
+  </div>
+</div>
+
+<!-- list modal -->
+<div class="modal" id="listModal" onclick="if(event.target===this)closeModal('listModal')">
+  <div class="mbox">
+    <div class="mhead"><h3>저장된 회의록</h3><input id="search" placeholder="회의명·내용 검색" oninput="renderList()"><button class="btn" onclick="closeModal('listModal')">닫기</button></div>
+    <div class="mbody"><table class="list"><thead><tr><th style="width:110px">날짜</th><th>회의명</th><th style="width:80px">미완료</th><th style="width:150px"></th></tr></thead><tbody id="listBody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- import modal -->
+<div class="modal" id="impModal" onclick="if(event.target===this)closeModal('impModal')">
+  <div class="mbox">
+    <div class="mhead"><h3>이전 회의의 미완료 할 일 가져오기</h3><span style="flex:1"></span><button class="btn" onclick="closeModal('impModal')">닫기</button></div>
+    <div class="mbody" id="impBody"></div>
+  </div>
+</div>
+
+<!-- agenda library modal -->
+<div class="modal" id="libModal" onclick="if(event.target===this)closeModal('libModal')">
+  <div class="mbox">
+    <div class="mhead"><h3>📚 안건 불러오기</h3><span style="flex:1"></span><button class="btn" onclick="closeModal('libModal')">닫기</button></div>
+    <div class="mbody">
+      <div class="typebar" id="libTypes"></div>
+      <div id="libStage"></div>
+      <div id="libItems"></div>
+      <div class="editbox" id="itemEdit">
+        <div class="grid2">
+          <div class="field full"><label id="itemEditLabel">내 안건 추가</label><input id="ieTitle" placeholder="안건 제목 (예: 경쟁 단지 분양 조건 비교)"></div>
+          <div class="field full"><label>세부 항목 <span style="font-weight:400">(한 줄에 하나, 비워도 됨)</span></label><textarea id="ieSubs" rows="3" placeholder="예) 계약금·중도금 조건 비교&#10;예) 발코니·옵션 무상 여부"></textarea></div>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" onclick="closeItemEdit()">취소</button><button class="btn sm lib" onclick="saveItemEdit()">저장</button></div>
+      </div>
+      <div class="editbox" id="typeEdit">
+        <div class="grid2">
+          <div class="field full"><label id="typeEditLabel">회의 유형 추가</label><input id="teName" placeholder="유형 이름 (예: 모델하우스 오픈 준비)"></div>
+          <div class="field full"><label>핵심 방향 <span style="font-weight:400">(선택)</span></label><input id="teDir" placeholder="이 회의에서 늘 염두에 둘 것"></div>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn sm" id="teDelBtn" style="color:var(--red);margin-right:auto" onclick="deleteType()">유형 삭제</button><button class="btn sm" onclick="closeTypeEdit()">취소</button><button class="btn sm lib" onclick="saveTypeEdit()">저장</button></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn sm" onclick="openItemEdit()">＋ 내 안건 추가</button>
+      <label class="chk"><input type="checkbox" id="withSubs" checked> 세부 항목을 논의 내용 칸에 함께 넣기</label>
+      <span style="flex:1"></span>
+      <button class="btn lib" id="libAddBtn" onclick="applyLib()">선택한 안건 넣기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY_LIST='mm_records_v1', KEY_DRAFT='mm_draft_v1', KEY_PEOPLE='mm_people_v1', KEY_LIB='mm_library_v1';
+const STATUS=['예정','진행','완료','보류'], DTAGS=['확정','보완','보류'];
+
+/* ---------- 기본 안건 (분양대행사 단계별 핵심 회의 안건 가이드) ---------- */
+const BASE_TYPES=[
+ {id:'market',name:'시장조사서 작성',dir:'추측을 배제하고 시행사/시공사가 인정할 수밖에 없는 객관적 근거 수집',goal:'적정 분양가 및 리스크 도출',kw:['수치 검증','시세 비교','현장 반응'],items:[
+  ['거시·미시 환경 및 개발 호재 검증',['행정구역별 인구·세대수 증감 및 연령별 타깃 분포 분석','교통, 학군, 상권 등 실질적 유효 호재와 단순 계획 단계 호재 구분']],
+  ['공급 및 미분양 리스크 점검',['최근 3년 ~ 향후 3년간 입주 예정 물량(공급 과잉 여부)','지역 내 미분양 단지 위치, 평형대, 장기 미분양 원인 분석']],
+  ['비교(경쟁) 단지 선정 및 시세 분석',['입지·상품성이 유사한 주요 비교 단지(3~5개) 확정','실거래가, 호가, 전세가율 및 분양가 대비 프리미엄(P) 형성 여부 점검']],
+  ['현장(부동산) 탐문 결과 취합 및 교차 검증',['인근 공인중개사 인터뷰 내용 공유 (실수요자 희망가, 선호 평형, 기피 요인)','실거주 갈아타기 수요 vs 광역 투자 수요 비율 판단']],
+  ['적정 분양가(안) 및 수용 한계선 도출',['비교 단지 시세 대비 안전마진을 반영한 평당 분양가 범위(Min ~ Max) 설정']]]},
+ {id:'proposal',name:'분양 제안서 작성',dir:'"왜 다른 대행사가 아닌 우리 회사가 팔아야 하는가"를 증명하는 수주 전략',goal:'시행/시공사 설득 및 용역 수주',kw:['차별화 전략','영업 조직','수수료'],items:[
+  ['발주처(시행사·시공사) 니즈 및 성향 파악',['발주처 우려 리스크(고분양가 저항, 대형 평형 미분양, PF 조기 상환 등) 파악','경쟁 입찰 참여 대행사 예측 및 자사만의 킬러 콘텐츠(Killer Point) 수립']],
+  ['상품 MD 및 설계·조건 개선 역제안',['시장조사 기반 평형 구성 조정, 특화 설계, 무상 옵션 제안','계약금 5% 정액제, 중도금 무이자 등 초기 계약률 극대화 금융 조건 시나리오 구성']],
+  ['타깃별 마케팅 및 매체 전략',['1·2차 타깃 설정 및 핵심 소구 슬로건 도출','온·오프라인 마케팅 예산 배분 및 사전 영업(거점 홍보관, MGM 등) 로드맵']],
+  ['분양 일정 및 시기별 계약률 목표 수립',['모델하우스 오픈부터 청약, 정당계약까지의 상세 역산 타임라인','정당계약 직후, 1개월, 3개월 차 목표 계약률 제시']],
+  ['투입 조직 및 용역 조건(수수료) 협의',['총괄 본부장 및 팀장급 인력의 동일 지역/상품 성공 레퍼런스 정리','수수료율(분양가 대비 % 또는 세대당 정액) 및 달성 인센티브/리스크 분담 조건 협의']]]},
+ {id:'new',name:'신규 분양 진행',dir:'사전 DB 확보, 청약 열기 조성 및 정당계약 이탈 방지',goal:'정당계약률 극대화',kw:['사전 DB','청약 자격','내방객'],items:[
+  ['사전 영업 및 DB 누적 현황 점검',['거점 홍보관, 사업설명회, 현장 투어 등을 통한 관심고객 DB 확보량','타입별 청약 의향서 수집 비율 및 특정 평형 편중 현상 분석']],
+  ['모델하우스(견본주택) 운영 및 상담 모니터링',['오픈 초기 내방객 수 예측, 대기 관리 및 유니트 관람 동선 점검','상담사별 일일 브리핑 건수 및 청약 전환율(방문 → 실제 청약) 모니터링']],
+  ['청약 자격 안내 및 부적격 리스크 사전 차단',['특별공급 및 1순위 청약 자격 요건 오상담 방지 교육','규제 사항(전매제한, 실거주 의무 등) 안내 스크립트 통일']],
+  ['정당계약률 방어 및 예비당첨자 소진 전략',['당첨자 발표 직후 서류 미제출자(계약 포기 가능군) 집중 관리','부적격 및 포기 물량 발생 시 예비당첨자 동·호수 추첨 및 계약 전환 유도']]]},
+ {id:'unsold',name:'미분양 판매 대책',dir:'조건 변경 협의, MGM 가동 및 미분양 특화 조직 풀가동',goal:'잔여세대 완전 소진',kw:['혜택 강화','MGM','프로모션'],items:[
+  ['잔여 물량 정밀 분석 및 원인 진단',['미계약 사유 분류 (고분양가 저항, 저층·비선호 향, 대형 평형 부담 등)','동·호수별 잔여 현황 파악 및 우선 판매 물량 지정']],
+  ['계약 조건 변경 및 발주처 추가 혜택 협의',['금융 혜택: 계약금 1차 정액제, 중도금 전액 무이자 전환, 잔금 유예','옵션/지원금: 발코니 무상 전환, 가전 옵션 무상 제공, 입주 축하금/취등록세 지원','안심보장제: 조건 변경 시 기존 계약자 소급 적용 제도 도입 검토']],
+  ['지역 공인중개사(MGM) 네트워크 총력전',['부동산 대상 사업설명회 및 현수막/매물 광고 지원','MGM 소개 수수료 요율 상향 및 지급 시기 단축 협의']],
+  ['영업 조직 재편 및 시상(인센티브) 운영',['미분양 특화 전문 영업팀 추가 투입 및 계약률 부진 팀 교체','주간/월간 계약 건수에 따른 현금 시책 및 특별 프로모션 집행']],
+  ['기존 계약자 민원 관리',['조건 변경에 따른 기존 계약자의 반발 및 집단 민원 대응 매뉴얼 수립']]]},
+ {id:'general',name:'일반 회의',dir:'',goal:'',kw:[],items:[]}
+];
+BASE_TYPES.forEach(t=>t.items=t.items.map((x,i)=>({id:t.id+'_'+i,title:x[0],subs:x[1],base:true})));
+
+let S, curId=null, dirty=false;
+
+/* ---------- storage ---------- */
+function ls(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('브라우저 저장소를 쓸 수 없어요. 백업 받기를 이용하세요.');return false}}
+
+/* ---------- library ---------- */
+function libData(){const d=ls(KEY_LIB,{});return{types:d.types||[],items:d.items||{},hidden:d.hidden||{}}}
+function libSave(d){lsSet(KEY_LIB,d)}
+function allTypes(){const d=libData();return[...BASE_TYPES.filter(t=>t.id!=='general'),...d.types,BASE_TYPES.find(t=>t.id==='general')]}
+function typeById(id){return allTypes().find(t=>t.id===id)}
+function typeItems(id,withHidden){const d=libData();const t=typeById(id);if(!t)return[];
+  const hid=d.hidden[id]||[];const base=(t.items||[]).filter(x=>withHidden||!hid.includes(x.id));
+  return[...base,...(d.items[id]||[]).map(x=>({...x,base:false}))]}
+
+/* ---------- state ---------- */
+function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function blank(){return{type:'',title:'',purpose:'',date:today(),start:'',end:'',place:'',host:'',writer:'',people:[],
+  agenda:[''],disc:[{a:'',t:''}],dec:[{t:'',tag:'확정'}],act:[{t:'',who:'',due:'',st:'예정',note:''}],
+  nDate:'',nTime:'',nAgenda:'',etc:''}}
+function normalize(d){const s=Object.assign(blank(),JSON.parse(JSON.stringify(d||{})));
+  s.dec=(s.dec||[]).map(x=>typeof x==='string'?{t:x,tag:'확정'}:{t:x.t||'',tag:x.tag||'확정'});
+  s.act=(s.act||[]).map(a=>({t:'',who:'',due:'',st:'예정',note:'',...a}));
+  s.disc=(s.disc||[]).map(x=>({a:'',t:'',...x}));s.agenda=(s.agenda||[]).map(String);s.people=s.people||[];return s}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function fmtDate(d){if(!d)return'';const x=new Date(d+'T00:00');if(isNaN(x))return d;return`${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')} (${'일월화수목금토'[x.getDay()]})`}
+function shortDate(d){if(!d)return'';const p=d.split('-');return p.length===3?`${+p[1]}/${+p[2]}`:d}
+function typeName(){const t=S.type&&typeById(S.type);return t?t.name:''}
+
+/* ---------- fields ---------- */
+const FIELDS=['title','purpose','date','start','end','place','host','writer','nDate','nTime','nAgenda','etc'];
+function bindFields(){FIELDS.forEach(f=>{const el=document.getElementById(f);el.addEventListener('input',()=>{S[f]=el.value;changed()})})}
+function fillFields(){FIELDS.forEach(f=>document.getElementById(f).value=S[f]||'')}
+
+/* ---------- type bar ---------- */
+function renderTypebar(){
+  document.getElementById('typebar').innerHTML=allTypes().map(t=>`<button data-t="${t.id}" class="${S.type===t.id?'on':''}">${esc(t.name)}</button>`).join('');
+  document.querySelectorAll('#typebar button').forEach(b=>b.onclick=()=>{S.type=S.type===b.dataset.t?'':b.dataset.t;renderTypebar();changed()});
+  const t=S.type&&typeById(S.type);
+  document.getElementById('stageInfo').innerHTML=t&&(t.dir||t.goal)?`<div class="stagebox">${t.dir?`<b>핵심 방향</b> ${esc(t.dir)}<br>`:''}${t.goal?`<b>주요 목표</b> ${esc(t.goal)}`:''}${t.kw&&t.kw.length?` &nbsp;${t.kw.map(k=>`<span class="kw">${esc(k)}</span>`).join('')}`:''}</div>`:'';
+}
+
+/* ---------- people ---------- */
+const chipIn=document.getElementById('chipIn');
+chipIn.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===',')&&!e.isComposing){e.preventDefault();addPeople(chipIn.value);chipIn.value=''}
+  else if(e.key==='Backspace'&&!chipIn.value&&S.people.length){S.people.pop();renderChips();changed()}
+});
+chipIn.addEventListener('blur',()=>{if(chipIn.value.trim()){addPeople(chipIn.value);chipIn.value=''}});
+function addPeople(v){v.split(/[,，、]/).map(x=>x.trim()).filter(Boolean).forEach(n=>{if(!S.people.includes(n))S.people.push(n)});renderChips();renderLists();changed()}
+function renderChips(){
+  const box=document.getElementById('chips');box.querySelectorAll('.chip').forEach(c=>c.remove());
+  S.people.forEach((p,i)=>{const c=document.createElement('span');c.className='chip';c.innerHTML=`${esc(p)}<button title="삭제">×</button>`;
+    c.querySelector('button').onclick=e=>{e.stopPropagation();S.people.splice(i,1);renderChips();changed()};box.insertBefore(c,document.getElementById('chipForm'))});
+  const known=ls(KEY_PEOPLE,[]).filter(p=>!S.people.includes(p)).slice(0,14);
+  document.getElementById('quick').innerHTML=known.map(p=>`<button data-p="${esc(p)}">＋ ${esc(p)}</button>`).join('');
+  document.querySelectorAll('#quick button').forEach(b=>b.onclick=()=>addPeople(b.dataset.p));
+}
+
+/* ---------- dynamic lists ---------- */
+function addItem(k){
+  if(k==='agenda')S.agenda.push('');
+  if(k==='dec')S.dec.push({t:'',tag:'확정'});
+  if(k==='disc')S.disc.push({a:'',t:''});
+  if(k==='act')S.act.push({t:'',who:'',due:'',st:'예정',note:''});
+  renderLists();changed();
+  const rows=document.querySelectorAll('#'+k+' .row:not(.head)');const last=rows[rows.length-1];
+  last&&last.querySelector('input:not([type=date]),textarea')?.focus();
+}
+function delItem(k,i){S[k].splice(i,1);renderLists();changed()}
+function autoGrow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+
+function renderLists(){
+  document.getElementById('agenda').innerHTML=S.agenda.length?S.agenda.map((v,i)=>
+    `<form class="row" onsubmit="event.preventDefault();addItem('agenda')"><span class="no">${i+1}</span><input data-k="agenda" data-i="${i}" value="${esc(v)}" placeholder="안건 입력" enterkeyhint="next" autocomplete="off"><button type="button" class="btn star" title="내 안건으로 저장" onclick="starAgenda(${i})">☆</button><button type="button" class="btn del" onclick="delItem('agenda',${i})">×</button></form>`).join(''):'<div class="empty">안건이 없어요. 「📚 안건 불러오기」나 「＋ 직접 추가」를 눌러 주세요.</div>';
+  const ag=S.agenda.filter(a=>a.trim());
+  document.getElementById('disc').innerHTML=S.disc.length?S.disc.map((d,i)=>
+    `<div class="row disc-row"><span class="no">${i+1}</span><input class="d-a" data-k="disc" data-i="${i}" data-f="a" value="${esc(d.a)}" placeholder="안건" list="agList" autocomplete="off"><textarea class="d-t" rows="2" data-k="disc" data-i="${i}" data-f="t" placeholder="주요 논의 내용">${esc(d.t)}</textarea><button class="btn del d-del" onclick="delItem('disc',${i})">×</button></div>`).join('')
+    +`<datalist id="agList">${ag.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>`:'<div class="empty">논의 내용이 없어요.</div>';
+  document.getElementById('dec').innerHTML=S.dec.length?S.dec.map((v,i)=>
+    `<div class="row dec-row"><span class="no">${i+1}</span><select data-k="dec" data-i="${i}" data-f="tag">${DTAGS.map(s=>`<option ${s===v.tag?'selected':''}>${s}</option>`).join('')}</select><textarea rows="1" data-k="dec" data-i="${i}" data-f="t" placeholder="결정된 내용">${esc(v.t)}</textarea><button class="btn del" onclick="delItem('dec',${i})">×</button></div>`).join(''):'<div class="empty">결정 사항이 없어요.</div>';
+  document.getElementById('act').innerHTML=S.act.length?
+    S.act.map((a,i)=>`<div class="row act-row"><span class="no">${i+1}</span>
+      <textarea class="a-t" rows="1" data-k="act" data-i="${i}" data-f="t" placeholder="할 일 (업무 내용)">${esc(a.t)}</textarea>
+      <input class="a-who" data-k="act" data-i="${i}" data-f="who" value="${esc(a.who)}" placeholder="담당자" list="pplList" autocomplete="off">
+      <input class="a-due" type="date" data-k="act" data-i="${i}" data-f="due" value="${esc(a.due)}" title="완료 예정일">
+      <select class="a-st" data-k="act" data-i="${i}" data-f="st">${STATUS.map(s=>`<option ${s===a.st?'selected':''}>${s}</option>`).join('')}</select>
+      <input class="a-note" data-k="act" data-i="${i}" data-f="note" value="${esc(a.note)}" placeholder="비고" autocomplete="off">
+      <button class="btn del a-del" onclick="delItem('act',${i})">×</button></div>`).join('')
+    +`<datalist id="pplList">${S.people.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>`:'<div class="empty">할 일이 없어요.</div>';
+
+  document.querySelectorAll('.form [data-k]').forEach(el=>{
+    const ev=el.tagName==='SELECT'||el.type==='date'?'change':'input';
+    el.addEventListener(ev,()=>{const k=el.dataset.k,i=+el.dataset.i,f=el.dataset.f;
+      if(f)S[k][i][f]=el.value;else S[k][i]=el.value;
+      if(el.tagName==='TEXTAREA')autoGrow(el);
+      if(k==='agenda'){const dl=document.getElementById('agList');if(dl)dl.innerHTML=S.agenda.filter(a=>a.trim()).map(a=>`<option value="${esc(a)}">`).join('')}
+      changed()});
+    if(el.tagName==='TEXTAREA')autoGrow(el);
+    if(el.dataset.k==='agenda')el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();addItem('agenda')}});
+  });
+}
+
+/* ---------- agenda library ---------- */
+let libTab='market', libSel=new Set(), editItemId=null, editTypeId=null;
+function openLib(){libTab=S.type||libTab;if(!typeById(libTab))libTab='market';libSel=new Set();closeItemEdit();closeTypeEdit();renderLib();document.getElementById('libModal').classList.add('on')}
+function renderLib(){
+  const d=libData();
+  document.getElementById('libTypes').innerHTML=allTypes().map(t=>`<button data-t="${t.id}" class="${libTab===t.id?'on':''}">${esc(t.name)}${String(t.id).startsWith('c_')?' ✎':''}</button>`).join('')+`<button data-new="1" style="border-style:dashed">＋ 유형 추가</button>`;
+  document.querySelectorAll('#libTypes button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.new){openTypeEdit(null);return}
+    if(b.dataset.t===libTab&&b.dataset.t.startsWith('c_')){openTypeEdit(b.dataset.t);return}
+    libTab=b.dataset.t;libSel=new Set();closeItemEdit();closeTypeEdit();renderLib()});
+  const t=typeById(libTab);
+  document.getElementById('libStage').innerHTML=t&&(t.dir||t.goal)?`<div class="stagebox">${t.dir?`<b>핵심 방향</b> ${esc(t.dir)}<br>`:''}${t.goal?`<b>주요 목표</b> ${esc(t.goal)}`:''}${t.kw&&t.kw.length?` &nbsp;${t.kw.map(k=>`<span class="kw">${esc(k)}</span>`).join('')}`:''}</div>`:'';
+  const items=typeItems(libTab);const hid=(d.hidden[libTab]||[]).length;
+  const used=new Set(S.agenda.map(a=>a.trim()));
+  document.getElementById('libItems').innerHTML=(items.length?items.map(it=>`<div class="libitem ${libSel.has(it.id)?'sel':''}" data-id="${it.id}">
+     <input type="checkbox" ${libSel.has(it.id)?'checked':''}>
+     <div style="flex:1;min-width:0"><div class="tt">${esc(it.title)}${it.base?'':'<span class="mine">내 안건</span>'}${used.has(it.title)?' <span style="font-size:11px;color:var(--ok);font-weight:600">✓ 이미 넣음</span>':''}</div>
+     ${it.subs&&it.subs.length?`<ul>${it.subs.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}</div>
+     <div class="ops">${it.base?`<button class="btn sm" data-op="hide" title="목록에서 숨기기">숨김</button>`:`<button class="btn sm" data-op="edit">수정</button><button class="btn sm" data-op="del" style="color:var(--red)">삭제</button>`}</div></div>`).join('')
+    :`<p class="empty" style="padding:20px 0;text-align:center">${libTab==='general'?'일반 회의에는 기본 안건이 없어요. 자주 쓰는 안건을 「＋ 내 안건 추가」로 만들어 두세요.':'안건이 없어요. 「＋ 내 안건 추가」로 만들어 보세요.'}</p>`)
+    +(hid?`<p class="hint" style="text-align:right"><a href="#" onclick="restoreHidden();return false" style="color:var(--navy2)">숨긴 기본 안건 ${hid}개 다시 보이기</a></p>`:'');
+  document.querySelectorAll('#libItems .libitem').forEach(el=>el.onclick=e=>{
+    const id=el.dataset.id,op=e.target.dataset?.op;
+    if(op==='hide'){const d=libData();(d.hidden[libTab]=d.hidden[libTab]||[]).push(id);libSave(d);libSel.delete(id);renderLib();return}
+    if(op==='edit'){openItemEdit(id);return}
+    if(op==='del'){if(!confirm('이 안건을 삭제할까요?'))return;const d=libData();d.items[libTab]=(d.items[libTab]||[]).filter(x=>x.id!==id);libSave(d);libSel.delete(id);renderLib();return}
+    libSel.has(id)?libSel.delete(id):libSel.add(id);renderLib()});
+  const n=libSel.size;const btn=document.getElementById('libAddBtn');btn.textContent=n?`선택한 안건 넣기 (${n})`:'선택한 안건 넣기';btn.disabled=!n;btn.style.opacity=n?1:.5;
+}
+function restoreHidden(){const d=libData();delete d.hidden[libTab];libSave(d);renderLib()}
+function applyLib(){
+  const items=typeItems(libTab).filter(x=>libSel.has(x.id));if(!items.length)return;
+  const withSubs=document.getElementById('withSubs').checked;
+  S.agenda=S.agenda.filter(a=>a.trim());S.disc=S.disc.filter(d=>d.a.trim()||d.t.trim());
+  items.forEach(it=>{if(!S.agenda.includes(it.title))S.agenda.push(it.title);
+    if(withSubs&&!S.disc.some(d=>d.a===it.title))S.disc.push({a:it.title,t:(it.subs||[]).map(s=>'· '+s+' : ').join('\n')})});
+  if(!S.disc.length)S.disc.push({a:'',t:''});
+  if(!S.type&&libTab!=='general'){S.type=libTab;renderTypebar()}
+  renderLists();changed();closeModal('libModal');toast(`안건 ${items.length}개를 넣었어요`);
+}
+function openItemEdit(id){closeTypeEdit();editItemId=id;const it=id?(libData().items[libTab]||[]).find(x=>x.id===id):null;
+  document.getElementById('itemEditLabel').textContent=`${id?'내 안건 수정':'내 안건 추가'} · ${typeById(libTab).name}`;
+  document.getElementById('ieTitle').value=it?it.title:'';document.getElementById('ieSubs').value=it?(it.subs||[]).join('\n'):'';
+  const box=document.getElementById('itemEdit');box.classList.add('on');box.scrollIntoView({block:'nearest',behavior:'smooth'});document.getElementById('ieTitle').focus()}
+function closeItemEdit(){editItemId=null;document.getElementById('itemEdit').classList.remove('on')}
+function saveItemEdit(){
+  const title=document.getElementById('ieTitle').value.trim();if(!title){toast('안건 제목을 입력해 주세요');return}
+  const subs=document.getElementById('ieSubs').value.split('\n').map(s=>s.replace(/^[\s·\-•*]+/,'').trim()).filter(Boolean);
+  const d=libData();const arr=d.items[libTab]=d.items[libTab]||[];
+  if(editItemId){const it=arr.find(x=>x.id===editItemId);if(it){it.title=title;it.subs=subs}}else{const id='u_'+uid();arr.push({id,title,subs});libSel.add(id)}
+  libSave(d);closeItemEdit();renderLib();toast('내 안건을 저장했어요')}
+function openTypeEdit(id){closeItemEdit();editTypeId=id;const t=id?libData().types.find(x=>x.id===id):null;
+  document.getElementById('typeEditLabel').textContent=id?'회의 유형 수정':'회의 유형 추가';
+  document.getElementById('teName').value=t?t.name:'';document.getElementById('teDir').value=t?t.dir||'':'';
+  document.getElementById('teDelBtn').style.display=id?'':'none';
+  const box=document.getElementById('typeEdit');box.classList.add('on');box.scrollIntoView({block:'nearest',behavior:'smooth'});document.getElementById('teName').focus()}
+function closeTypeEdit(){editTypeId=null;document.getElementById('typeEdit').classList.remove('on')}
+function saveTypeEdit(){
+  const name=document.getElementById('teName').value.trim();if(!name){toast('유형 이름을 입력해 주세요');return}
+  const dir=document.getElementById('teDir').value.trim();const d=libData();
+  if(editTypeId){const t=d.types.find(x=>x.id===editTypeId);if(t){t.name=name;t.dir=dir}}else{const id='c_'+uid();d.types.push({id,name,dir,goal:'',kw:[],items:[]});libTab=id}
+  libSave(d);closeTypeEdit();renderLib();renderTypebar();toast('회의 유형을 저장했어요')}
+function deleteType(){if(!editTypeId||!confirm('이 유형과 안에 저장한 내 안건을 모두 삭제할까요?'))return;
+  const d=libData();d.types=d.types.filter(x=>x.id!==editTypeId);delete d.items[editTypeId];libSave(d);
+  if(S.type===editTypeId){S.type='';changed()}libTab='market';closeTypeEdit();renderLib();renderTypebar()}
+function starAgenda(i){
+  const title=(S.agenda[i]||'').trim();if(!title){toast('안건을 먼저 입력해 주세요');return}
+  const tid=S.type||'general';const d=libData();const arr=d.items[tid]=d.items[tid]||[];
+  if(typeItems(tid,true).some(x=>x.title===title)){toast(`이미 「${typeById(tid).name}」 안건 목록에 있어요`);return}
+  const disc=S.disc.find(x=>x.a===title);
+  const subs=disc?disc.t.split('\n').map(s=>s.replace(/^[\s·\-•*]+/,'').replace(/\s*:.*$/,'').trim()).filter(Boolean):[];
+  arr.push({id:'u_'+uid(),title,subs});libSave(d);toast(`「${typeById(tid).name}」의 내 안건으로 저장했어요`)}
+
+/* ---------- preview / word ---------- */
+function ph(v,p=''){return v&&String(v).trim()?esc(v):`<span class="ph">${p}</span>`}
+function clean(){const tidy=t=>t.split('\n').map(l=>l.replace(/\s*:\s*$/,'')).join('\n').replace(/\s+$/,'');return{ag:S.agenda.filter(a=>a.trim()),dec:S.dec.filter(d=>d.t.trim()),disc:S.disc.map(d=>({a:d.a,t:tidy(d.t)})).filter(d=>d.a.trim()||d.t.trim()),act:S.act.filter(a=>a.t.trim()||a.who.trim())}}
+function timeStr(){return S.start||S.end?` ${S.start||''}${S.end?' ~ '+S.end:''}`:''}
+function buildDoc(forWord){
+  const {ag,dec,disc,act}=clean();
+  const B='border:1px solid #7F8FA6;padding:5px 8px;';
+  const L=forWord?`style="background:#E8EDF5;font-weight:bold;text-align:center;${B}"`:'';
+  const D=forWord?`style="${B}"`:'';
+  const DC=forWord?`style="${B}text-align:center"`:'class="c"';
+  const H=t=>forWord?`<h3 style="font-size:13pt;color:#1F3864;border-bottom:1.5pt solid #1F3864;margin:14pt 0 6pt">${t}</h3>`:`<h3>${t}</h3>`;
+  const T=forWord?'style="width:100%;border-collapse:collapse"':'';
+  const st=s=>forWord?esc(s):`<span class="st ${esc(s)}">${esc(s)}</span>`;
+  const nl=s=>esc(s).replace(/\n/g,'<br>');
+  let h=forWord?`<p style="text-align:center;font-size:20pt;font-weight:bold;color:#1F3864;letter-spacing:8pt">회 의 록</p>`:`<div class="title">회 의 록</div>`;
+  h+=`<table ${T}><colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
+   <tr><th ${L}>회의명</th><td ${D}>${ph(S.title,'회의')}</td><th ${L}>회의 구분</th><td ${D}>${ph(typeName())}</td></tr>
+   <tr><th ${L}>일 시</th><td ${D}>${ph(fmtDate(S.date)+timeStr())}</td><th ${L}>장 소</th><td ${D}>${ph(S.place)}</td></tr>
+   <tr><th ${L}>주 관</th><td ${D}>${ph(S.host)}</td><th ${L}>작성자</th><td ${D}>${ph(S.writer)}</td></tr>
+   <tr><th ${L}>참석자</th><td ${D} colspan="3">${S.people.length?esc(S.people.join(', '))+` <span style="color:#888">(${S.people.length}명)</span>`:ph('')}</td></tr>
+   <tr><th ${L}>회의 목적</th><td ${D} colspan="3">${ph(S.purpose)}</td></tr></table>`;
+  h+=H('1. 회의 안건');
+  h+=ag.length?`<ol>${ag.map(a=>`<li>${esc(a)}</li>`).join('')}</ol>`:`<p style="margin:0">${ph('','안건을 입력하세요')}</p>`;
+  h+=H('2. 주요 논의 내용');
+  h+=`<table ${T}><colgroup><col style="width:26%"><col></colgroup><tr><th ${L}>안건</th><th ${L}>주요 논의 내용</th></tr>
+   ${(disc.length?disc:[{a:'',t:''}]).map(d=>`<tr><td ${D}>${ph(d.a)}</td><td ${D}>${d.t.trim()?nl(d.t):ph('')}</td></tr>`).join('')}</table>`;
+  h+=H('3. 결정 사항');
+  h+=`<table ${T}><colgroup><col style="width:7%"><col style="width:11%"><col></colgroup><tr><th ${L}>No</th><th ${L}>구분</th><th ${L}>결정 사항</th></tr>
+   ${(dec.length?dec:[{t:'',tag:''}]).map((d,i)=>`<tr><td ${DC}>${dec.length?i+1:''}</td><td ${DC}>${d.tag&&dec.length?st(d.tag):''}</td><td ${D}>${d.t?nl(d.t):ph('')}</td></tr>`).join('')}</table>`;
+  h+=H('4. 향후 조치 사항');
+  h+=`<table ${T}><colgroup><col style="width:6%"><col><col style="width:13%"><col style="width:12%"><col style="width:10%"><col style="width:19%"></colgroup>
+   <tr><th ${L}>No</th><th ${L}>업무 내용</th><th ${L}>담당자</th><th ${L}>완료 예정일</th><th ${L}>상태</th><th ${L}>비고</th></tr>
+   ${(act.length?act:[{t:'',who:'',due:'',st:'',note:''}]).map((a,i)=>`<tr><td ${DC}>${act.length?i+1:''}</td><td ${D}>${a.t?nl(a.t):ph('')}</td><td ${DC}>${ph(a.who)}</td><td ${DC}>${ph(a.due?a.due.replace(/-/g,'.').slice(2):'')}</td><td ${DC}>${a.st&&act.length?st(a.st):''}</td><td ${D}>${ph(a.note)}</td></tr>`).join('')}</table>`;
+  h+=H('5. 다음 회의');
+  h+=`<table ${T}><colgroup><col style="width:15%"><col></colgroup>
+   <tr><th ${L}>일 시</th><td ${D}>${ph((fmtDate(S.nDate)+(S.nTime?' '+S.nTime:'')).trim(),'미정')}</td></tr>
+   <tr><th ${L}>안 건</th><td ${D}>${S.nAgenda.trim()?nl(S.nAgenda):ph('')}</td></tr></table>`;
+  h+=H('6. 기타');
+  h+=`<table ${T}><tr><td style="${forWord?B:''}height:${forWord?'40pt':'48px'};vertical-align:top">${S.etc.trim()?nl(S.etc):ph('')}</td></tr></table>`;
+  return h;
+}
+function renderDoc(){document.getElementById('doc').innerHTML=buildDoc(false)}
+
+/* ---------- change / autosave ---------- */
+let tmr;
+function changed(){dirty=true;renderDoc();setStatus();clearTimeout(tmr);tmr=setTimeout(()=>lsSet(KEY_DRAFT,{id:curId,data:S}),400)}
+function setStatus(){document.getElementById('status').textContent=(curId?'저장된 회의록':'새 회의록')+(dirty?' · 저장 안 됨':' · 저장됨')}
+function loadState(data,id){S=normalize(data);curId=id||null;fillFields();renderTypebar();renderChips();renderLists();renderDoc();updTitleList()}
+
+/* ---------- records ---------- */
+function records(){return ls(KEY_LIST,[])}
+function saveDoc(){
+  if(!S.title.trim()){toast('회의명을 입력해 주세요');if(document.body.dataset.view==='preview')setView('form');document.getElementById('title').focus();return false}
+  const list=records();const now=new Date().toISOString();
+  if(curId){const r=list.find(x=>x.id===curId);if(r){r.data=S;r.updated=now}else list.push({id:curId,updated:now,data:S})}
+  else{curId=uid();list.push({id:curId,updated:now,data:S})}
+  if(!lsSet(KEY_LIST,list))return false;
+  const ppl=ls(KEY_PEOPLE,[]);[...S.people,S.writer].filter(Boolean).forEach(p=>{const i=ppl.indexOf(p);if(i>-1)ppl.splice(i,1);ppl.unshift(p)});lsSet(KEY_PEOPLE,ppl.slice(0,40));
+  dirty=false;lsSet(KEY_DRAFT,{id:curId,data:S});setStatus();renderChips();updTitleList();toast('저장했어요');return true
+}
+function newDoc(){
+  if(dirty&&!confirm('저장하지 않은 내용이 있어요. 새로 시작할까요?'))return;
+  const prev=S;const b=blank();if(prev){b.writer=prev.writer||'';b.type=prev.type||''}
+  loadState(b,null);dirty=false;lsSet(KEY_DRAFT,{id:null,data:S});setStatus();
+}
+function updTitleList(){const ts=[...new Set(records().map(r=>r.data.title).filter(Boolean))];document.getElementById('titleList').innerHTML=ts.map(x=>`<option value="${esc(x)}">`).join('')}
+function openCount(d){return(d.act||[]).filter(a=>a.t&&a.st!=='완료').length}
+function openList(){document.getElementById('search').value='';renderList();document.getElementById('listModal').classList.add('on')}
+function closeModal(id){document.getElementById(id).classList.remove('on')}
+function renderList(){
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  const list=records().filter(r=>!q||JSON.stringify(r.data).toLowerCase().includes(q)).sort((a,b)=>(b.data.date||'').localeCompare(a.data.date||'')||b.updated.localeCompare(a.updated));
+  document.getElementById('listBody').innerHTML=list.length?list.map(r=>{const n=openCount(r.data);const tn=r.data.type&&typeById(r.data.type);return`<tr class="item" data-id="${r.id}">
+    <td>${esc(fmtDate(r.data.date))}</td><td><b>${esc(r.data.title)}</b>${tn?` <span class="kw">${esc(tn.name)}</span>`:''}${r.id===curId?' <span style="color:var(--navy2);font-size:11px">(작성 중)</span>':''}</td>
+    <td>${n?`<span class="st 진행">${n}건</span>`:'<span style="color:var(--muted)">-</span>'}</td>
+    <td class="ops"><button class="btn sm" data-op="copy">복사해서 새로</button> <button class="btn sm" data-op="del" style="color:var(--red)">삭제</button></td></tr>`}).join(''):'<tr><td colspan="4" class="empty" style="text-align:center;padding:30px">저장된 회의록이 없어요.</td></tr>';
+  document.querySelectorAll('#listBody tr.item').forEach(tr=>tr.onclick=e=>{
+    const id=tr.dataset.id,op=e.target.dataset?.op,r=records().find(x=>x.id===id);if(!r)return;
+    if(op==='del'){if(!confirm(`「${r.data.title}」(${fmtDate(r.data.date)})을 삭제할까요?`))return;lsSet(KEY_LIST,records().filter(x=>x.id!==id));if(curId===id){curId=null;dirty=true;setStatus()}renderList();updTitleList();return}
+    if(dirty&&!confirm('저장하지 않은 내용이 있어요. 계속할까요?'))return;
+    if(op==='copy'){const d=normalize(r.data);d.date=d.nDate||today();d.start=d.nTime||d.start;d.agenda=d.nAgenda?d.nAgenda.split('\n').filter(Boolean):[''];
+      d.disc=[{a:'',t:''}];d.dec=[{t:'',tag:'확정'}];d.purpose='';d.act=d.act.filter(a=>a.t&&a.st!=='완료');if(!d.act.length)d.act=[{t:'',who:'',due:'',st:'예정',note:''}];d.nDate='';d.nTime='';d.nAgenda='';d.etc='';
+      loadState(d,null);dirty=true;setStatus();toast('지난 회의 기준으로 새 회의록을 만들었어요 (미완료 할 일 포함)')}
+    else{loadState(r.data,r.id);dirty=false;setStatus()}
+    lsSet(KEY_DRAFT,{id:curId,data:S});closeModal('listModal')});
+}
+
+/* ---------- import open actions ---------- */
+function importOpen(){
+  const list=records().filter(r=>r.id!==curId&&openCount(r.data)).sort((a,b)=>(b.data.date||'').localeCompare(a.data.date||''));
+  const same=S.title.trim()?list.filter(r=>r.data.title===S.title.trim()):[];
+  const show=same.length?same:list;
+  document.getElementById('impBody').innerHTML=show.length?
+    (same.length?`<p class="hint">같은 회의명 「${esc(S.title)}」의 이전 회의록이에요.</p>`:'<p class="hint">미완료 할 일이 있는 회의록이에요. (회의명을 먼저 입력하면 같은 회의만 골라 보여드려요)</p>')+
+    show.slice(0,12).map(r=>`<div class="card" style="margin-top:8px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap"><b>${esc(fmtDate(r.data.date))}</b> ${esc(r.data.title)}<span style="flex:1"></span><button class="btn sm" data-id="${r.id}">이 할 일 모두 가져오기</button></div>
+      ${r.data.act.filter(a=>a.t&&a.st!=='완료').map(a=>`<div style="font-size:12px;padding:2px 0">· ${esc(a.t)} <span style="color:var(--muted)">/ ${esc(a.who||'-')} / ${esc(a.due||'-')}</span> <span class="st ${esc(a.st)}">${esc(a.st)}</span></div>`).join('')}</div>`).join('')
+    :'<p class="empty" style="padding:30px;text-align:center">가져올 미완료 할 일이 없어요.</p>';
+  document.querySelectorAll('#impBody button[data-id]').forEach(b=>b.onclick=()=>{
+    const r=records().find(x=>x.id===b.dataset.id);const items=normalize(r.data).act.filter(a=>a.t&&a.st!=='완료');
+    S.act=S.act.filter(a=>a.t.trim()||a.who.trim());const have=new Set(S.act.map(a=>a.t));items.forEach(a=>{if(!have.has(a.t))S.act.push(a)});
+    renderLists();changed();closeModal('impModal');toast(`할 일 ${items.length}건을 가져왔어요`)});
+  document.getElementById('impModal').classList.add('on');
+}
+
+/* ---------- export ---------- */
+function fileName(ext){return`회의록_${(S.date||today()).replace(/-/g,'')}_${(S.title||'회의').replace(/[\\/:*?"<>|]/g,'')}.${ext}`}
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+function exportWord(){
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>회의록</title>
+  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+  <style>@page Section1{size:595.3pt 841.9pt;margin:42pt 50pt 42pt 50pt}div.Section1{page:Section1}
+  body{font-family:"맑은 고딕";font-size:10pt}table{border-collapse:collapse;width:100%}td,th{font-size:10pt;font-family:"맑은 고딕";vertical-align:middle}ol{margin-top:0;margin-bottom:0}</style></head>
+  <body><div class="Section1">${buildDoc(true).replace(/<span class="ph">[^<]*<\/span>/g,'&nbsp;')}</div></body></html>`;
+  download(fileName('doc'),new Blob(['﻿',html],{type:'application/msword'}));toast('워드 파일(.doc)을 받았어요');
+}
+function copyText(){
+  const {ag,dec,disc,act}=clean();const L=[];
+  L.push(`[회의록] ${S.title||'회의'}${typeName()?' ('+typeName()+')':''}`);
+  L.push(`일시: ${fmtDate(S.date)}${timeStr()}${S.place?' / 장소: '+S.place:''}`);
+  if(S.people.length)L.push(`참석: ${S.people.join(', ')}`);
+  if(S.purpose.trim())L.push(`목적: ${S.purpose}`);
+  if(ag.length){L.push('','■ 안건');ag.forEach((a,i)=>L.push(` ${i+1}. ${a}`))}
+  if(disc.length){L.push('','■ 주요 논의 내용');disc.forEach(d=>{L.push(` - [${d.a||'기타'}]`);d.t.split('\n').filter(x=>x.trim()).forEach(x=>L.push(`   ${x.trim().startsWith('·')?x.trim():'· '+x.trim()}`))})}
+  if(dec.length){L.push('','■ 결정 사항');dec.forEach(d=>L.push(` - [${d.tag}] ${d.t}`))}
+  if(act.length){L.push('','■ 향후 조치 사항');act.forEach(a=>L.push(` - ${a.t} / ${a.who||'-'} / ${a.due?shortDate(a.due)+'까지':'기한 미정'}${a.st&&a.st!=='예정'?' ('+a.st+')':''}${a.note?' / '+a.note:''}`))}
+  if(S.nDate||S.nAgenda.trim())L.push('',`■ 다음 회의: ${fmtDate(S.nDate)}${S.nTime?' '+S.nTime:''}${S.nAgenda.trim()?' / '+S.nAgenda.replace(/\n/g,', '):''}`);
+  if(S.etc.trim())L.push('','■ 기타',S.etc);
+  const txt=L.join('\n');
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('카톡·메일에 붙여넣을 텍스트를 복사했어요'))
+   .catch(()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast('텍스트를 복사했어요')});
+}
+function backup(){download(`회의록_백업_${today().replace(/-/g,'')}.json`,new Blob([JSON.stringify({records:records(),people:ls(KEY_PEOPLE,[]),library:libData()},null,1)],{type:'application/json'}));toast(`회의록 ${records().length}건과 내 안건을 백업했어요`)}
+function restore(inp){
+  const f=inp.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const j=JSON.parse(rd.result);const cur=records();const ids=new Set(cur.map(r=>r.id));let n=0;
+    (j.records||[]).forEach(r=>{if(r&&r.id&&r.data&&!ids.has(r.id)){cur.push(r);n++}});lsSet(KEY_LIST,cur);
+    const ppl=ls(KEY_PEOPLE,[]);(j.people||[]).forEach(p=>{if(!ppl.includes(p))ppl.push(p)});lsSet(KEY_PEOPLE,ppl);
+    if(j.library){const d=libData();const L=j.library;
+      (L.types||[]).forEach(t=>{if(!d.types.some(x=>x.id===t.id))d.types.push(t)});
+      Object.entries(L.items||{}).forEach(([k,arr])=>{const a=d.items[k]=d.items[k]||[];arr.forEach(it=>{if(!a.some(x=>x.id===it.id))a.push(it)})});
+      Object.entries(L.hidden||{}).forEach(([k,arr])=>{d.hidden[k]=[...new Set([...(d.hidden[k]||[]),...arr])]});libSave(d);renderTypebar()}
+    updTitleList();renderChips();toast(`회의록 ${n}건을 불러왔어요`)}catch(e){toast('백업 파일을 읽지 못했어요')}inp.value=''};
+  rd.readAsText(f,'utf-8');
+}
+
+/* ---------- 한글(HWPX) 내보내기 ---------- */
+const HWPX_STATIC={"mimetype": "application/hwp+zip", "version.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><hv:HCFVersion xmlns:hv=\"http://www.hancom.co.kr/hwpml/2011/version\" tagetApplication=\"WORDPROCESSOR\" major=\"5\" minor=\"1\" micro=\"1\" buildNumber=\"0\" os=\"1\" xmlVersion=\"1.5\" application=\"Hancom Office Hangul\" appVersion=\"13, 0, 0, 1408 WIN32LEWindows_10\"/>", "META-INF/container.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><ocf:container xmlns:ocf=\"urn:oasis:names:tc:opendocument:xmlns:container\" xmlns:hpf=\"http://www.hancom.co.kr/schema/2011/hpf\"><ocf:rootfiles><ocf:rootfile full-path=\"Contents/content.hpf\" media-type=\"application/hwpml-package+xml\"/><ocf:rootfile full-path=\"Preview/PrvText.txt\" media-type=\"text/plain\"/><ocf:rootfile full-path=\"META-INF/container.rdf\" media-type=\"application/rdf+xml\"/><\/ocf:rootfiles><\/ocf:container>", "META-INF/manifest.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><odf:manifest xmlns:odf=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\"/>", "META-INF/container.rdf": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\"><ns0:hasPart xmlns:ns0=\"http://www.hancom.co.kr/hwpml/2016/meta/pkg#\" rdf:resource=\"Contents/header.xml\"/><\/rdf:Description><rdf:Description rdf:about=\"Contents/header.xml\"><rdf:type rdf:resource=\"http://www.hancom.co.kr/hwpml/2016/meta/pkg#HeaderFile\"/><\/rdf:Description><rdf:Description rdf:about=\"\"><ns0:hasPart xmlns:ns0=\"http://www.hancom.co.kr/hwpml/2016/meta/pkg#\" rdf:resource=\"Contents/section0.xml\"/><\/rdf:Description><rdf:Description rdf:about=\"Contents/section0.xml\"><rdf:type rdf:resource=\"http://www.hancom.co.kr/hwpml/2016/meta/pkg#SectionFile\"/><\/rdf:Description><rdf:Description rdf:about=\"\"><rdf:type rdf:resource=\"http://www.hancom.co.kr/hwpml/2016/meta/pkg#Document\"/><\/rdf:Description><\/rdf:RDF>", "Contents/content.hpf": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><opf:package xmlns:ha=\"http://www.hancom.co.kr/hwpml/2011/app\" xmlns:hp=\"http://www.hancom.co.kr/hwpml/2011/paragraph\" xmlns:hp10=\"http://www.hancom.co.kr/hwpml/2016/paragraph\" xmlns:hs=\"http://www.hancom.co.kr/hwpml/2011/section\" xmlns:hc=\"http://www.hancom.co.kr/hwpml/2011/core\" xmlns:hh=\"http://www.hancom.co.kr/hwpml/2011/head\" xmlns:hhs=\"http://www.hancom.co.kr/hwpml/2011/history\" xmlns:hm=\"http://www.hancom.co.kr/hwpml/2011/master-page\" xmlns:hpf=\"http://www.hancom.co.kr/schema/2011/hpf\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf/\" xmlns:ooxmlchart=\"http://www.hancom.co.kr/hwpml/2016/ooxmlchart\" xmlns:hwpunitchar=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:config=\"urn:oasis:names:tc:opendocument:xmlns:config:1.0\" version=\"\" unique-identifier=\"\" id=\"\"><opf:metadata><opf:title/><opf:language>ko<\/opf:language><opf:meta name=\"creator\" content=\"text\"/><opf:meta name=\"subject\" content=\"text\"/><opf:meta name=\"description\" content=\"text\"/><opf:meta name=\"lastsaveby\" content=\"text\"/><opf:meta name=\"CreatedDate\" content=\"text\">2026-11-12T07:40:42Z<\/opf:meta><opf:meta name=\"ModifiedDate\" content=\"text\">2026-11-12T07:40:42Z<\/opf:meta><opf:meta name=\"date\" content=\"text\"/><opf:meta name=\"keyword\" content=\"text\"/><\/opf:metadata><opf:manifest><opf:item id=\"header\" href=\"Contents/header.xml\" media-type=\"application/xml\"/><opf:item id=\"section0\" href=\"Contents/section0.xml\" media-type=\"application/xml\"/><opf:item id=\"settings\" href=\"settings.xml\" media-type=\"application/xml\"/><\/opf:manifest><opf:spine><opf:itemref idref=\"header\" linear=\"yes\"/><opf:itemref idref=\"section0\" linear=\"yes\"/><\/opf:spine><\/opf:package>", "Contents/header.xml": "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\n<hh:head xmlns:ha=\"http://www.hancom.co.kr/hwpml/2011/app\" xmlns:hp=\"http://www.hancom.co.kr/hwpml/2011/paragraph\" xmlns:hp10=\"http://www.hancom.co.kr/hwpml/2016/paragraph\" xmlns:hs=\"http://www.hancom.co.kr/hwpml/2011/section\" xmlns:hc=\"http://www.hancom.co.kr/hwpml/2011/core\" xmlns:hh=\"http://www.hancom.co.kr/hwpml/2011/head\" xmlns:hhs=\"http://www.hancom.co.kr/hwpml/2011/history\" xmlns:hm=\"http://www.hancom.co.kr/hwpml/2011/master-page\" xmlns:hpf=\"http://www.hancom.co.kr/schema/2011/hpf\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf/\" xmlns:ooxmlchart=\"http://www.hancom.co.kr/hwpml/2016/ooxmlchart\" xmlns:hwpunitchar=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:config=\"urn:oasis:names:tc:opendocument:xmlns:config:1.0\" version=\"1.5\" secCnt=\"1\"><hh:beginNum page=\"1\" footnote=\"1\" endnote=\"1\" pic=\"1\" tbl=\"1\" equation=\"1\"/><hh:refList><hh:fontfaces itemCnt=\"7\"><hh:fontface lang=\"HANGUL\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><hh:fontface lang=\"LATIN\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><hh:fontface lang=\"HANJA\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><hh:fontface lang=\"JAPANESE\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><hh:fontface lang=\"OTHER\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><hh:fontface lang=\"SYMBOL\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><hh:fontface lang=\"USER\" fontCnt=\"3\"><hh:font id=\"0\" face=\"함초롬돋움\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"1\" face=\"함초롬바탕\" type=\"TTF\" isEmbedded=\"0\"><hh:typeInfo familyType=\"FCAT_GOTHIC\" weight=\"6\" proportion=\"4\" contrast=\"0\" strokeVariation=\"1\" armStyle=\"1\" letterform=\"1\" midline=\"1\" xHeight=\"1\"/><\/hh:font><hh:font id=\"2\" face=\"맑은 고딕\" type=\"TTF\" isEmbedded=\"0\"/><\/hh:fontface><\/hh:fontfaces><hh:borderFills itemCnt=\"4\"><hh:borderFill id=\"1\" threeD=\"0\" shadow=\"0\" centerLine=\"NONE\" breakCellSeparateLine=\"0\"><hh:slash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:backSlash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:leftBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:rightBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:topBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:bottomBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:diagonal type=\"SOLID\" width=\"0.1 mm\" color=\"#000000\"/><\/hh:borderFill><hh:borderFill id=\"2\" threeD=\"0\" shadow=\"0\" centerLine=\"NONE\" breakCellSeparateLine=\"0\"><hh:slash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:backSlash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:leftBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:rightBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:topBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:bottomBorder type=\"NONE\" width=\"0.1 mm\" color=\"#000000\"/><hh:diagonal type=\"SOLID\" width=\"0.1 mm\" color=\"#000000\"/><hc:fillBrush><hc:winBrush faceColor=\"none\" hatchColor=\"#999999\" alpha=\"0\"/><\/hc:fillBrush><\/hh:borderFill><hh:borderFill id=\"3\" threeD=\"0\" shadow=\"0\" centerLine=\"NONE\" breakCellSeparateLine=\"0\"><hh:slash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:backSlash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:leftBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:rightBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:topBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:bottomBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:diagonal type=\"NONE\" width=\"0.12 mm\" color=\"#7F8FA6\"/><\/hh:borderFill><hh:borderFill id=\"4\" threeD=\"0\" shadow=\"0\" centerLine=\"NONE\" breakCellSeparateLine=\"0\"><hh:slash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:backSlash type=\"NONE\" Crooked=\"0\" isCounter=\"0\"/><hh:leftBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:rightBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:topBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:bottomBorder type=\"SOLID\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hh:diagonal type=\"NONE\" width=\"0.12 mm\" color=\"#7F8FA6\"/><hc:fillBrush><hc:winBrush faceColor=\"#E8EDF5\" hatchColor=\"#FF000000\" alpha=\"0\"/><\/hc:fillBrush><\/hh:borderFill><\/hh:borderFills><hh:charProperties itemCnt=\"12\"><hh:charPr id=\"0\" height=\"1000\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"1\" latin=\"1\" hanja=\"1\" japanese=\"1\" other=\"1\" symbol=\"1\" user=\"1\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr id=\"1\" height=\"1000\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr id=\"2\" height=\"900\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr id=\"3\" height=\"900\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"1\" latin=\"1\" hanja=\"1\" japanese=\"1\" other=\"1\" symbol=\"1\" user=\"1\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr id=\"4\" height=\"900\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"-5\" latin=\"-5\" hanja=\"-5\" japanese=\"-5\" other=\"-5\" symbol=\"-5\" user=\"-5\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr id=\"5\" height=\"1600\" textColor=\"#2E74B5\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr id=\"6\" height=\"1100\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\"><hh:fontRef hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr height=\"2000\" textColor=\"#1F3864\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\" id=\"7\"><hh:fontRef hangul=\"2\" latin=\"2\" hanja=\"2\" japanese=\"2\" other=\"2\" symbol=\"2\" user=\"2\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:bold/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr height=\"1200\" textColor=\"#1F3864\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\" id=\"8\"><hh:fontRef hangul=\"2\" latin=\"2\" hanja=\"2\" japanese=\"2\" other=\"2\" symbol=\"2\" user=\"2\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:bold/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr height=\"1000\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\" id=\"9\"><hh:fontRef hangul=\"2\" latin=\"2\" hanja=\"2\" japanese=\"2\" other=\"2\" symbol=\"2\" user=\"2\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:bold/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr height=\"1000\" textColor=\"#000000\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\" id=\"10\"><hh:fontRef hangul=\"2\" latin=\"2\" hanja=\"2\" japanese=\"2\" other=\"2\" symbol=\"2\" user=\"2\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><hh:charPr height=\"1000\" textColor=\"#8C8C8C\" shadeColor=\"none\" useFontSpace=\"0\" useKerning=\"0\" symMark=\"NONE\" borderFillIDRef=\"2\" id=\"11\"><hh:fontRef hangul=\"2\" latin=\"2\" hanja=\"2\" japanese=\"2\" other=\"2\" symbol=\"2\" user=\"2\"/><hh:ratio hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:spacing hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:relSz hangul=\"100\" latin=\"100\" hanja=\"100\" japanese=\"100\" other=\"100\" symbol=\"100\" user=\"100\"/><hh:offset hangul=\"0\" latin=\"0\" hanja=\"0\" japanese=\"0\" other=\"0\" symbol=\"0\" user=\"0\"/><hh:underline type=\"NONE\" shape=\"SOLID\" color=\"#000000\"/><hh:strikeout shape=\"NONE\" color=\"#000000\"/><hh:outline type=\"NONE\"/><hh:shadow type=\"NONE\" color=\"#C0C0C0\" offsetX=\"10\" offsetY=\"10\"/><\/hh:charPr><\/hh:charProperties><hh:tabProperties itemCnt=\"3\"><hh:tabPr id=\"0\" autoTabLeft=\"0\" autoTabRight=\"0\"/><hh:tabPr id=\"1\" autoTabLeft=\"1\" autoTabRight=\"0\"/><hh:tabPr id=\"2\" autoTabLeft=\"0\" autoTabRight=\"1\"/><\/hh:tabProperties><hh:numberings itemCnt=\"1\"><hh:numbering id=\"1\" start=\"0\"><hh:paraHead start=\"1\" level=\"1\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"DIGIT\" charPrIDRef=\"4294967295\" checkable=\"0\">^1.<\/hh:paraHead><hh:paraHead start=\"1\" level=\"2\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"HANGUL_SYLLABLE\" charPrIDRef=\"4294967295\" checkable=\"0\">^2.<\/hh:paraHead><hh:paraHead start=\"1\" level=\"3\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"DIGIT\" charPrIDRef=\"4294967295\" checkable=\"0\">^3)<\/hh:paraHead><hh:paraHead start=\"1\" level=\"4\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"HANGUL_SYLLABLE\" charPrIDRef=\"4294967295\" checkable=\"0\">^4)<\/hh:paraHead><hh:paraHead start=\"1\" level=\"5\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"DIGIT\" charPrIDRef=\"4294967295\" checkable=\"0\">(^5)<\/hh:paraHead><hh:paraHead start=\"1\" level=\"6\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"HANGUL_SYLLABLE\" charPrIDRef=\"4294967295\" checkable=\"0\">(^6)<\/hh:paraHead><hh:paraHead start=\"1\" level=\"7\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"CIRCLED_DIGIT\" charPrIDRef=\"4294967295\" checkable=\"1\">^7<\/hh:paraHead><hh:paraHead start=\"1\" level=\"8\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"CIRCLED_HANGUL_SYLLABLE\" charPrIDRef=\"4294967295\" checkable=\"1\">^8<\/hh:paraHead><hh:paraHead start=\"1\" level=\"9\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"HANGUL_JAMO\" charPrIDRef=\"4294967295\" checkable=\"0\"/><hh:paraHead start=\"1\" level=\"10\" align=\"LEFT\" useInstWidth=\"1\" autoIndent=\"1\" widthAdjust=\"0\" textOffsetType=\"PERCENT\" textOffset=\"50\" numFormat=\"ROMAN_SMALL\" charPrIDRef=\"4294967295\" checkable=\"1\"/><\/hh:numbering><\/hh:numberings><hh:paraProperties itemCnt=\"21\"><hh:paraPr id=\"0\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"1\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"1500\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"3000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"2\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"1000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"2000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"3\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"1\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"2000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"4000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"4\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"2\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"3000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"6000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"5\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"3\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"4000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"8000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"6\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"4\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"5000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"10000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"7\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"5\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"6000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"12000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"8\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"6\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"7000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"14000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"9\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"150\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"150\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"10\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"-1310\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"130\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"-2620\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"130\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"11\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"LEFT\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"130\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"130\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"12\" tabPrIDRef=\"1\" condense=\"20\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"LEFT\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"1200\" unit=\"HWPUNIT\"/><hc:next value=\"300\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"2400\" unit=\"HWPUNIT\"/><hc:next value=\"600\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"13\" tabPrIDRef=\"2\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"LEFT\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"700\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"1400\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"14\" tabPrIDRef=\"2\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"LEFT\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"1100\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"700\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"2200\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"1400\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"15\" tabPrIDRef=\"2\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"LEFT\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"2200\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"700\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"4400\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"1400\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"16\" tabPrIDRef=\"1\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/paragraph\"><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"8\"/><\/hp:case><hp:default><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><\/hp:default><\/hp:switch><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"9000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"18000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"17\" tabPrIDRef=\"1\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/paragraph\"><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"9\"/><\/hp:case><hp:default><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><\/hp:default><\/hp:switch><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"10000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"20000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"18\" tabPrIDRef=\"1\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/paragraph\"><hh:heading type=\"OUTLINE\" idRef=\"0\" level=\"7\"/><\/hp:case><hp:default><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><\/hp:default><\/hp:switch><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"8000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"16000\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr id=\"19\" tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\"><hh:align horizontal=\"JUSTIFY\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"KEEP_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"800\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"150\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"1600\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"150\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><hh:paraPr tabPrIDRef=\"0\" condense=\"0\" fontLineHeight=\"0\" snapToGrid=\"1\" suppressLineNumbers=\"0\" checked=\"0\" textDir=\"LTR\" id=\"20\"><hh:align horizontal=\"CENTER\" vertical=\"BASELINE\"/><hh:heading type=\"NONE\" idRef=\"0\" level=\"0\"/><hh:breakSetting breakLatinWord=\"KEEP_WORD\" breakNonLatinWord=\"BREAK_WORD\" widowOrphan=\"0\" keepWithNext=\"0\" keepLines=\"0\" pageBreakBefore=\"0\" lineWrap=\"BREAK\"/><hh:autoSpacing eAsianEng=\"0\" eAsianNum=\"0\"/><hp:switch><hp:case hp:required-namespace=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\"><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:case><hp:default><hh:margin><hc:intent value=\"0\" unit=\"HWPUNIT\"/><hc:left value=\"0\" unit=\"HWPUNIT\"/><hc:right value=\"0\" unit=\"HWPUNIT\"/><hc:prev value=\"0\" unit=\"HWPUNIT\"/><hc:next value=\"0\" unit=\"HWPUNIT\"/><\/hh:margin><hh:lineSpacing type=\"PERCENT\" value=\"160\" unit=\"HWPUNIT\"/><\/hp:default><\/hp:switch><hh:border borderFillIDRef=\"2\" offsetLeft=\"0\" offsetRight=\"0\" offsetTop=\"0\" offsetBottom=\"0\" connect=\"0\" ignoreMargin=\"0\"/><\/hh:paraPr><\/hh:paraProperties><hh:styles itemCnt=\"23\"><hh:style id=\"0\" type=\"PARA\" name=\"바탕글\" engName=\"Normal\" paraPrIDRef=\"0\" charPrIDRef=\"0\" nextStyleIDRef=\"0\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"1\" type=\"PARA\" name=\"본문\" engName=\"Body\" paraPrIDRef=\"1\" charPrIDRef=\"0\" nextStyleIDRef=\"1\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"2\" type=\"PARA\" name=\"개요 1\" engName=\"Outline 1\" paraPrIDRef=\"2\" charPrIDRef=\"0\" nextStyleIDRef=\"2\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"3\" type=\"PARA\" name=\"개요 2\" engName=\"Outline 2\" paraPrIDRef=\"3\" charPrIDRef=\"0\" nextStyleIDRef=\"3\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"4\" type=\"PARA\" name=\"개요 3\" engName=\"Outline 3\" paraPrIDRef=\"4\" charPrIDRef=\"0\" nextStyleIDRef=\"4\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"5\" type=\"PARA\" name=\"개요 4\" engName=\"Outline 4\" paraPrIDRef=\"5\" charPrIDRef=\"0\" nextStyleIDRef=\"5\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"6\" type=\"PARA\" name=\"개요 5\" engName=\"Outline 5\" paraPrIDRef=\"6\" charPrIDRef=\"0\" nextStyleIDRef=\"6\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"7\" type=\"PARA\" name=\"개요 6\" engName=\"Outline 6\" paraPrIDRef=\"7\" charPrIDRef=\"0\" nextStyleIDRef=\"7\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"8\" type=\"PARA\" name=\"개요 7\" engName=\"Outline 7\" paraPrIDRef=\"8\" charPrIDRef=\"0\" nextStyleIDRef=\"8\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"9\" type=\"PARA\" name=\"개요 8\" engName=\"Outline 8\" paraPrIDRef=\"18\" charPrIDRef=\"0\" nextStyleIDRef=\"9\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"10\" type=\"PARA\" name=\"개요 9\" engName=\"Outline 9\" paraPrIDRef=\"16\" charPrIDRef=\"0\" nextStyleIDRef=\"10\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"11\" type=\"PARA\" name=\"개요 10\" engName=\"Outline 10\" paraPrIDRef=\"17\" charPrIDRef=\"0\" nextStyleIDRef=\"11\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"12\" type=\"CHAR\" name=\"쪽 번호\" engName=\"Page Number\" paraPrIDRef=\"0\" charPrIDRef=\"1\" nextStyleIDRef=\"0\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"13\" type=\"CHAR\" name=\"줄 번호\" engName=\"Line Number\" paraPrIDRef=\"0\" charPrIDRef=\"0\" nextStyleIDRef=\"0\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"14\" type=\"PARA\" name=\"머리말\" engName=\"Header\" paraPrIDRef=\"9\" charPrIDRef=\"2\" nextStyleIDRef=\"14\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"15\" type=\"PARA\" name=\"각주\" engName=\"Footnote\" paraPrIDRef=\"10\" charPrIDRef=\"3\" nextStyleIDRef=\"15\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"16\" type=\"PARA\" name=\"미주\" engName=\"Endnote\" paraPrIDRef=\"10\" charPrIDRef=\"3\" nextStyleIDRef=\"16\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"17\" type=\"PARA\" name=\"메모\" engName=\"Memo\" paraPrIDRef=\"11\" charPrIDRef=\"4\" nextStyleIDRef=\"17\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"18\" type=\"PARA\" name=\"차례 제목\" engName=\"TOC Heading\" paraPrIDRef=\"12\" charPrIDRef=\"5\" nextStyleIDRef=\"18\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"19\" type=\"PARA\" name=\"차례 1\" engName=\"TOC 1\" paraPrIDRef=\"13\" charPrIDRef=\"6\" nextStyleIDRef=\"19\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"20\" type=\"PARA\" name=\"차례 2\" engName=\"TOC 2\" paraPrIDRef=\"14\" charPrIDRef=\"6\" nextStyleIDRef=\"20\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"21\" type=\"PARA\" name=\"차례 3\" engName=\"TOC 3\" paraPrIDRef=\"15\" charPrIDRef=\"6\" nextStyleIDRef=\"21\" langID=\"1042\" lockForm=\"0\"/><hh:style id=\"22\" type=\"PARA\" name=\"캡션\" engName=\"Caption\" paraPrIDRef=\"19\" charPrIDRef=\"0\" nextStyleIDRef=\"22\" langID=\"1042\" lockForm=\"0\"/><\/hh:styles><\/hh:refList><hh:compatibleDocument targetProgram=\"HWP201X\"><hh:layoutCompatibility/><\/hh:compatibleDocument><hh:docOption><hh:linkinfo path=\"\" pageInherit=\"0\" footnoteInherit=\"0\"/><\/hh:docOption><hh:metaTag>{\"name\":\"\"}<\/hh:metaTag><hh:trackchageConfig flags=\"56\"/><\/hh:head>", "settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><ha:HWPApplicationSetting xmlns:ha=\"http://www.hancom.co.kr/hwpml/2011/app\" xmlns:config=\"urn:oasis:names:tc:opendocument:xmlns:config:1.0\"><ha:CaretPosition listIDRef=\"0\" paraIDRef=\"0\" pos=\"16\"/><\/ha:HWPApplicationSetting>"};
+const HWPX_SEC_HEAD="<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\n<hs:sec xmlns:ha=\"http://www.hancom.co.kr/hwpml/2011/app\" xmlns:hp=\"http://www.hancom.co.kr/hwpml/2011/paragraph\" xmlns:hp10=\"http://www.hancom.co.kr/hwpml/2016/paragraph\" xmlns:hs=\"http://www.hancom.co.kr/hwpml/2011/section\" xmlns:hc=\"http://www.hancom.co.kr/hwpml/2011/core\" xmlns:hh=\"http://www.hancom.co.kr/hwpml/2011/head\" xmlns:hhs=\"http://www.hancom.co.kr/hwpml/2011/history\" xmlns:hm=\"http://www.hancom.co.kr/hwpml/2011/master-page\" xmlns:hpf=\"http://www.hancom.co.kr/schema/2011/hpf\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf/\" xmlns:ooxmlchart=\"http://www.hancom.co.kr/hwpml/2016/ooxmlchart\" xmlns:hwpunitchar=\"http://www.hancom.co.kr/hwpml/2016/HwpUnitChar\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:config=\"urn:oasis:names:tc:opendocument:xmlns:config:1.0\"><hp:p id=\"0\" paraPrIDRef=\"0\" styleIDRef=\"0\" pageBreak=\"0\" columnBreak=\"0\" merged=\"0\"><hp:run charPrIDRef=\"0\"><hp:secPr id=\"\" textDirection=\"HORIZONTAL\" spaceColumns=\"1134\" tabStop=\"8000\" tabStopVal=\"4000\" tabStopUnit=\"HWPUNIT\" outlineShapeIDRef=\"1\" memoShapeIDRef=\"0\" textVerticalWidthHead=\"0\" masterPageCnt=\"0\"><hp:grid lineGrid=\"0\" charGrid=\"0\" wonggojiFormat=\"0\"/><hp:startNum pageStartsOn=\"BOTH\" page=\"0\" pic=\"0\" tbl=\"0\" equation=\"0\"/><hp:visibility hideFirstHeader=\"0\" hideFirstFooter=\"0\" hideFirstMasterPage=\"0\" border=\"SHOW_ALL\" fill=\"SHOW_ALL\" hideFirstPageNum=\"0\" hideFirstEmptyLine=\"0\" showLineNumber=\"0\"/><hp:lineNumberShape restartType=\"0\" countBy=\"0\" distance=\"0\" startNumber=\"0\"/><hp:pagePr landscape=\"WIDELY\" width=\"59528\" height=\"84186\" gutterType=\"LEFT_ONLY\"><hp:margin header=\"2835\" footer=\"2835\" gutter=\"0\" left=\"5669\" right=\"5669\" top=\"4252\" bottom=\"4252\"/><\/hp:pagePr><hp:footNotePr><hp:autoNumFormat type=\"DIGIT\" userChar=\"\" prefixChar=\"\" suffixChar=\")\" supscript=\"0\"/><hp:noteLine length=\"-1\" type=\"SOLID\" width=\"0.12 mm\" color=\"#000000\"/><hp:noteSpacing betweenNotes=\"283\" belowLine=\"567\" aboveLine=\"850\"/><hp:numbering type=\"CONTINUOUS\" newNum=\"1\"/><hp:placement place=\"EACH_COLUMN\" beneathText=\"0\"/><\/hp:footNotePr><hp:endNotePr><hp:autoNumFormat type=\"DIGIT\" userChar=\"\" prefixChar=\"\" suffixChar=\")\" supscript=\"0\"/><hp:noteLine length=\"14692344\" type=\"SOLID\" width=\"0.12 mm\" color=\"#000000\"/><hp:noteSpacing betweenNotes=\"0\" belowLine=\"567\" aboveLine=\"850\"/><hp:numbering type=\"CONTINUOUS\" newNum=\"1\"/><hp:placement place=\"END_OF_DOCUMENT\" beneathText=\"0\"/><\/hp:endNotePr><hp:pageBorderFill type=\"BOTH\" borderFillIDRef=\"1\" textBorder=\"PAPER\" headerInside=\"0\" footerInside=\"0\" fillArea=\"PAPER\"><hp:offset left=\"1417\" right=\"1417\" top=\"1417\" bottom=\"1417\"/><\/hp:pageBorderFill><hp:pageBorderFill type=\"EVEN\" borderFillIDRef=\"1\" textBorder=\"PAPER\" headerInside=\"0\" footerInside=\"0\" fillArea=\"PAPER\"><hp:offset left=\"1417\" right=\"1417\" top=\"1417\" bottom=\"1417\"/><\/hp:pageBorderFill><hp:pageBorderFill type=\"ODD\" borderFillIDRef=\"1\" textBorder=\"PAPER\" headerInside=\"0\" footerInside=\"0\" fillArea=\"PAPER\"><hp:offset left=\"1417\" right=\"1417\" top=\"1417\" bottom=\"1417\"/><\/hp:pageBorderFill><\/hp:secPr><hp:ctrl><hp:colPr id=\"\" type=\"NEWSPAPER\" layout=\"LEFT\" colCount=\"1\" sameSz=\"1\" sameGap=\"0\"/><\/hp:ctrl><\/hp:run><hp:run charPrIDRef=\"0\"><hp:t/><\/hp:run><\/hp:p>";
+const HWPX_ORDER=['mimetype','version.xml','META-INF/container.xml','META-INF/manifest.xml','META-INF/container.rdf','Contents/content.hpf','Contents/header.xml','Contents/section0.xml','settings.xml','Preview/PrvText.txt'];
+// charPr: 7 제목, 8 소제목, 9 굵게(라벨), 10 본문, 11 회색 / paraPr: 20 가운데, 11 왼쪽 / borderFill: 3 표, 4 라벨칸
+function buildHwpxSection(){
+  const X=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let pid=1000,tid=500;const W=48190;
+  const P=(text,cp=10,pp=11)=>`<hp:p id="${pid++}" paraPrIDRef="${pp}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="${cp}">${text===''?'<hp:t/>':`<hp:t>${X(text)}</hp:t>`}</hp:run></hp:p>`;
+  const TBL=(pct,rows)=>{
+    const ws=pct.map(p=>Math.round(W*p/100));ws[ws.length-1]=W-ws.slice(0,-1).reduce((a,b)=>a+b,0);
+    let totalH=0;
+    const trs=rows.map((r,ri)=>{let c=0,maxH=0;
+      const tcs=r.map(cell=>{const span=cell.span||1;const w=ws.slice(c,c+span).reduce((a,b)=>a+b,0);
+        const lines=String(cell.t??'').split('\n');const h=Math.max(1,lines.length)*1200+282;maxH=Math.max(maxH,cell.minH||h);
+        const cp=cell.lab?9:10,pp=(cell.lab||cell.ctr)?20:11;
+        const x=`<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="1" borderFillIDRef="${cell.lab?4:3}"><hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="${cell.top?'TOP':'CENTER'}" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">${lines.map(l=>P(l,cp,pp)).join('')}</hp:subList><hp:cellAddr colAddr="${c}" rowAddr="${ri}"/><hp:cellSpan colSpan="${span}" rowSpan="1"/><hp:cellSz width="${w}" height="${cell.minH||h}"/><hp:cellMargin left="510" right="510" top="141" bottom="141"/></hp:tc>`;
+        c+=span;return x});
+      totalH+=maxH;return`<hp:tr>${tcs.join('')}</hp:tr>`});
+    return`<hp:p id="${pid++}" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0"><hp:tbl id="${tid++}" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" rowCnt="${rows.length}" colCnt="${pct.length}" cellSpacing="0" borderFillIDRef="3" noAdjust="0"><hp:sz width="${W}" widthRelTo="ABSOLUTE" height="${totalH}" heightRelTo="ABSOLUTE" protect="0"/><hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/><hp:outMargin left="0" right="0" top="0" bottom="0"/><hp:inMargin left="510" right="510" top="141" bottom="141"/>${trs.join('')}</hp:tbl></hp:run></hp:p>`;
+  };
+  const L=t=>({t,lab:1}),V=(t,o={})=>({t:t||' ',...o});
+  const H=t=>P('',10)+P(t,8);
+  const {ag,dec,disc,act}=clean();
+  let b=P('회  의  록',7,20)+P('',10);
+  b+=TBL([15,35,15,35],[
+    [L('회의명'),V(S.title),L('회의 구분'),V(typeName())],
+    [L('일    시'),V(fmtDate(S.date)+timeStr()),L('장    소'),V(S.place)],
+    [L('주    관'),V(S.host),L('작성자'),V(S.writer)],
+    [L('참석자'),V(S.people.length?`${S.people.join(', ')} (${S.people.length}명)`:'',{span:3})],
+    [L('회의 목적'),V(S.purpose,{span:3})]]);
+  b+=H('1. 회의 안건');
+  b+=(ag.length?ag:['']).map((a,i)=>P(ag.length?`${i+1}. ${a}`:'',10)).join('');
+  b+=H('2. 주요 논의 내용');
+  b+=TBL([26,74],[[L('안건'),L('주요 논의 내용')],...(disc.length?disc:[{a:'',t:''}]).map(d=>[V(d.a),V(d.t)])]);
+  b+=H('3. 결정 사항');
+  b+=TBL([7,11,82],[[L('No'),L('구분'),L('결정 사항')],...(dec.length?dec:[{t:'',tag:''}]).map((d,i)=>[V(dec.length?String(i+1):'',{ctr:1}),V(dec.length?d.tag:'',{ctr:1}),V(d.t)])]);
+  b+=H('4. 향후 조치 사항');
+  b+=TBL([6,37,13,15,10,19],[[L('No'),L('업무 내용'),L('담당자'),L('완료 예정일'),L('상태'),L('비고')],
+    ...(act.length?act:[{t:'',who:'',due:'',st:'',note:''}]).map((a,i)=>[V(act.length?String(i+1):'',{ctr:1}),V(a.t),V(a.who,{ctr:1}),V(a.due?a.due.replace(/-/g,'.').slice(2):'',{ctr:1}),V(act.length?a.st:'',{ctr:1}),V(a.note)])]);
+  b+=H('5. 다음 회의');
+  b+=TBL([15,85],[[L('일    시'),V((fmtDate(S.nDate)+(S.nTime?' '+S.nTime:'')).trim()||'미정')],[L('안    건'),V(S.nAgenda)]]);
+  b+=H('6. 기타');
+  b+=TBL([100],[[V(S.etc,{top:1,minH:Math.max(3600,S.etc.split('\n').length*1200+282)})]]);
+  return HWPX_SEC_HEAD+b+'</hs:sec>';
+}
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC_T[(c^u[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zipStore(files){
+  const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+  const d=new Date(),dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  for(const f of files){const nm=enc.encode(f.name),crc=crc32(f.data),sz=f.data.length;
+    const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,dt,true);h.setUint16(12,dd,true);h.setUint32(14,crc,true);h.setUint32(18,sz,true);h.setUint32(22,sz,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer),nm,f.data);
+    const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,dt,true);c.setUint16(14,dd,true);c.setUint32(16,crc,true);c.setUint32(20,sz,true);c.setUint32(24,sz,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+    cen.push(new Uint8Array(c.buffer),nm);off+=30+nm.length+sz}
+  const cs=cen.reduce((a,b)=>a+b.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cen,new Uint8Array(e.buffer)],{type:'application/hwp+zip'});
+}
+function exportHwp(){
+  try{const enc=new TextEncoder(),files={...HWPX_STATIC};
+    files['Contents/section0.xml']=buildHwpxSection();
+    files['Preview/PrvText.txt']=`회의록 ${S.title||''} ${fmtDate(S.date)}`;
+    download(fileName('hwpx'),zipStore(HWPX_ORDER.map(n=>({name:n,data:enc.encode(files[n])}))));
+    toast('한글 파일(.hwpx)을 받았어요');return true;
+  }catch(e){console.error(e);toast('한글 파일을 만들지 못했어요');return false}
+}
+function finishDoc(){if(saveDoc())exportHwp()}
+
+/* ---------- view / misc ---------- */
+function setView(v){document.body.dataset.view=v;document.getElementById('tabForm').classList.toggle('on',v==='form');document.getElementById('tabPrev').classList.toggle('on',v==='preview');window.scrollTo(0,0)}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2200)}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDoc()}if(e.key==='Escape'){['listModal','impModal','libModal'].forEach(closeModal)}});
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+
+/* ---------- init ---------- */
+bindFields();
+const draft=ls(KEY_DRAFT,null);
+if(draft&&draft.data){loadState(draft.data,draft.id);const r=draft.id&&records().find(x=>x.id===draft.id);dirty=!r||JSON.stringify(normalize(r.data))!==JSON.stringify(S)}
+else loadState(blank(),null);
+setStatus();
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display=''});
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;document.getElementById('installBtn').style.display='none';toast('앱으로 설치했어요')});
+function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.finally(()=>{deferredPrompt=null;document.getElementById('installBtn').style.display='none'})}
+if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
