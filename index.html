@@ -132,6 +132,14 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
 
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
 .toast.on{opacity:1}
+.trhelp{display:none;background:#F6F8FC;border:1px solid var(--line2);border-left:3px solid var(--navy);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.7;margin-bottom:10px;color:#3A4558}
+.trhelp.on{display:block}
+.tr-ops{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.trcheck{margin-top:12px;border:1px solid #F0D9A8;background:#FFF9EC;border-radius:8px;padding:10px 12px}
+.trcheck b{color:var(--warn);font-size:13px}
+.trcheck .ci{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:5px 0;border-top:1px dashed #F0D9A8}
+.trcheck .ci:first-of-type{border-top:none}
+.trcheck .ci span{flex:1;white-space:pre-wrap}
 
 /* ---- tablet / touch ---- */
 .mtabs{display:none}
@@ -263,6 +271,29 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
       <textarea id="etc" rows="3" placeholder="특이사항, 첨부자료 등"></textarea>
     </div>
 
+    <div class="card tr-card">
+      <h2><span class="n">🎙</span>녹취록으로 보강<span class="act"><button class="btn sm" onclick="toggleTrHelp()">사용법</button></span></h2>
+      <div class="trhelp" id="trHelp">
+        <b>① 녹음</b> 삼성 <b>음성 녹음</b> 앱으로 회의를 녹음해요. (시작 전에 참석자에게 녹음한다고 알려 주세요)<br>
+        <b>② 텍스트 변환</b> 녹음 파일 → 상단 <b>Galaxy AI</b> → <b>텍스트 변환</b> → 전체 복사<br>
+        <b>③ 붙여넣기</b> 아래 녹취록 칸에 붙여넣고 「보강 요청문 복사」<br>
+        <b>④ Claude에게 보내기</b> 복사된 요청문을 Claude 앱에 붙여넣어 보내요<br>
+        <b>⑤ 반영</b> Claude가 준 답(코드 블록)을 복사해 「결과 붙여넣기」 칸에 넣고 「회의록에 반영」<br>
+        <span style="color:var(--muted)">직접 쓴 필기는 지워지지 않고, 녹취에만 있는 내용이 덧붙어요. 필기와 녹취가 다른 부분은 아래 「확인 필요」에 따로 모여요.</span>
+      </div>
+      <div class="field"><label>녹취록 (텍스트 변환 결과)</label><textarea id="transcript" rows="4" placeholder="음성 녹음 앱에서 변환한 텍스트를 붙여넣으세요"></textarea></div>
+      <div class="tr-ops">
+        <button class="btn lib" onclick="copyTrPrompt()">📋 보강 요청문 복사</button>
+        <label class="chk"><input type="checkbox" id="trAppendix" onchange="S.trAppendix=this.checked;changed()"> 한글·워드 파일에 녹취 원문을 부록으로 넣기</label>
+      </div>
+      <div class="field" style="margin-top:10px"><label>결과 붙여넣기 (Claude 답변)</label><textarea id="trResult" rows="3" placeholder="Claude가 준 답을 그대로 붙여넣으세요"></textarea></div>
+      <div class="tr-ops">
+        <button class="btn lib" onclick="applyTrResult()">✅ 회의록에 반영</button>
+        <button class="btn sm" id="trUndoBtn" style="display:none" onclick="undoTr()">↶ 반영 되돌리기</button>
+      </div>
+      <div id="trCheck"></div>
+    </div>
+
     <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <span style="font-size:12px;color:var(--muted);flex:1">백업 (회의록 + 내 안건 · 다른 기기로 옮기거나 보관할 때)</span>
       <button class="btn sm" onclick="backup()">전체 백업 받기</button>
@@ -379,11 +410,11 @@ function typeItems(id,withHidden){const d=libData();const t=typeById(id);if(!t)r
 function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
 function blank(){return{type:'',title:'',purpose:'',date:today(),start:'',end:'',place:'',host:'',writer:'',people:[],
   agenda:[''],disc:[{a:'',t:''}],dec:[{t:'',tag:'확정'}],act:[{t:'',who:'',due:'',st:'예정',note:''}],
-  nDate:'',nTime:'',nAgenda:'',etc:''}}
+  nDate:'',nTime:'',nAgenda:'',etc:'',transcript:'',trAppendix:false,trCheck:[]}}
 function normalize(d){const s=Object.assign(blank(),JSON.parse(JSON.stringify(d||{})));
   s.dec=(s.dec||[]).map(x=>typeof x==='string'?{t:x,tag:'확정'}:{t:x.t||'',tag:x.tag||'확정'});
   s.act=(s.act||[]).map(a=>({t:'',who:'',due:'',st:'예정',note:'',...a}));
-  s.disc=(s.disc||[]).map(x=>({a:'',t:'',...x}));s.agenda=(s.agenda||[]).map(String);s.people=s.people||[];return s}
+  s.disc=(s.disc||[]).map(x=>({a:'',t:'',...x}));s.agenda=(s.agenda||[]).map(String);s.people=s.people||[];s.trCheck=Array.isArray(s.trCheck)?s.trCheck.map(String):[];s.trAppendix=!!s.trAppendix;return s}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function fmtDate(d){if(!d)return'';const x=new Date(d+'T00:00');if(isNaN(x))return d;return`${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')} (${'일월화수목금토'[x.getDay()]})`}
@@ -391,7 +422,7 @@ function shortDate(d){if(!d)return'';const p=d.split('-');return p.length===3?`$
 function typeName(){const t=S.type&&typeById(S.type);return t?t.name:''}
 
 /* ---------- fields ---------- */
-const FIELDS=['title','purpose','date','start','end','place','host','writer','nDate','nTime','nAgenda','etc'];
+const FIELDS=['title','purpose','date','start','end','place','host','writer','nDate','nTime','nAgenda','etc','transcript'];
 function bindFields(){FIELDS.forEach(f=>{const el=document.getElementById(f);el.addEventListener('input',()=>{S[f]=el.value;changed()})})}
 function fillFields(){FIELDS.forEach(f=>document.getElementById(f).value=S[f]||'')}
 
@@ -576,6 +607,7 @@ function buildDoc(forWord){
    <tr><th ${L}>안 건</th><td ${D}>${S.nAgenda.trim()?nl(S.nAgenda):ph('')}</td></tr></table>`;
   h+=H('6. 기타');
   h+=`<table ${T}><tr><td style="${forWord?B:''}height:${forWord?'40pt':'48px'};vertical-align:top">${S.etc.trim()?nl(S.etc):ph('')}</td></tr></table>`;
+  if(S.trAppendix&&S.transcript.trim()){h+=H('[부록] 녹취 원문');h+=`<div style="font-size:${forWord?'9pt':'11.5px'};line-height:1.6;color:#333">${nl(S.transcript.trim())}</div>`}
   return h;
 }
 function renderDoc(){document.getElementById('doc').innerHTML=buildDoc(false)}
@@ -584,7 +616,7 @@ function renderDoc(){document.getElementById('doc').innerHTML=buildDoc(false)}
 let tmr;
 function changed(){dirty=true;renderDoc();setStatus();clearTimeout(tmr);tmr=setTimeout(()=>lsSet(KEY_DRAFT,{id:curId,data:S}),400)}
 function setStatus(){document.getElementById('status').textContent=(curId?'저장된 회의록':'새 회의록')+(dirty?' · 저장 안 됨':' · 저장됨')}
-function loadState(data,id){S=normalize(data);curId=id||null;fillFields();renderTypebar();renderChips();renderLists();renderDoc();updTitleList()}
+function loadState(data,id){S=normalize(data);curId=id||null;fillFields();renderTypebar();renderChips();renderLists();renderDoc();updTitleList();trUndo=null;renderTr()}
 
 /* ---------- records ---------- */
 function records(){return ls(KEY_LIST,[])}
@@ -618,7 +650,7 @@ function renderList(){
     if(op==='del'){if(!confirm(`「${r.data.title}」(${fmtDate(r.data.date)})을 삭제할까요?`))return;lsSet(KEY_LIST,records().filter(x=>x.id!==id));if(curId===id){curId=null;dirty=true;setStatus()}renderList();updTitleList();return}
     if(dirty&&!confirm('저장하지 않은 내용이 있어요. 계속할까요?'))return;
     if(op==='copy'){const d=normalize(r.data);d.date=d.nDate||today();d.start=d.nTime||d.start;d.agenda=d.nAgenda?d.nAgenda.split('\n').filter(Boolean):[''];
-      d.disc=[{a:'',t:''}];d.dec=[{t:'',tag:'확정'}];d.purpose='';d.act=d.act.filter(a=>a.t&&a.st!=='완료');if(!d.act.length)d.act=[{t:'',who:'',due:'',st:'예정',note:''}];d.nDate='';d.nTime='';d.nAgenda='';d.etc='';
+      d.disc=[{a:'',t:''}];d.dec=[{t:'',tag:'확정'}];d.purpose='';d.act=d.act.filter(a=>a.t&&a.st!=='완료');if(!d.act.length)d.act=[{t:'',who:'',due:'',st:'예정',note:''}];d.nDate='';d.nTime='';d.nAgenda='';d.etc='';d.transcript='';d.trCheck=[];d.trAppendix=false;
       loadState(d,null);dirty=true;setStatus();toast('지난 회의 기준으로 새 회의록을 만들었어요 (미완료 할 일 포함)')}
     else{loadState(r.data,r.id);dirty=false;setStatus()}
     lsSet(KEY_DRAFT,{id:curId,data:S});closeModal('listModal')});
@@ -726,6 +758,7 @@ function buildHwpxSection(){
   b+=TBL([15,85],[[L('일    시'),V((fmtDate(S.nDate)+(S.nTime?' '+S.nTime:'')).trim()||'미정')],[L('안    건'),V(S.nAgenda)]]);
   b+=H('6. 기타');
   b+=TBL([100],[[V(S.etc,{top:1,minH:Math.max(3600,S.etc.split('\n').length*1200+282)})]]);
+  if(S.trAppendix&&S.transcript.trim()){b+=H('[부록] 녹취 원문');b+=S.transcript.trim().split('\n').map(l=>P(l,10)).join('')}
   return HWPX_SEC_HEAD+b+'</hs:sec>';
 }
 const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
@@ -750,6 +783,90 @@ function exportHwp(){
   }catch(e){console.error(e);toast('한글 파일을 만들지 못했어요');return false}
 }
 function finishDoc(){if(saveDoc())exportHwp()}
+
+/* ---------- 녹취록 보강 ---------- */
+let trUndo=null;
+function toggleTrHelp(){document.getElementById('trHelp').classList.toggle('on')}
+function renderTr(){
+  document.getElementById('trAppendix').checked=!!S.trAppendix;
+  document.getElementById('trUndoBtn').style.display=trUndo?'':'none';
+  const c=S.trCheck||[];
+  document.getElementById('trCheck').innerHTML=c.length?`<div class="trcheck"><b>⚠ 확인 필요 ${c.length}건</b> <span style="font-size:12px;color:var(--muted)">필기와 녹취가 다르거나 애매한 부분이에요. 확인 후 위 칸을 직접 고치고 ✓를 눌러 지우세요.</span>
+    ${c.map((x,i)=>`<div class="ci"><span>${esc(x)}</span><button class="btn sm" onclick="S.trCheck.splice(${i},1);renderTr();changed()">✓</button></div>`).join('')}</div>`:'';
+}
+function copyToClip(txt,msg){
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast(msg))
+   .catch(()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast(msg)});
+}
+function buildTrPrompt(){
+  const {ag,dec,disc,act}=clean();const t=S.type&&typeById(S.type);const L=[];
+  L.push('아래 회의의 내 필기와 녹취록을 비교해서 회의록을 보강해 줘.','',
+  '[규칙]',
+  '- 내 필기가 기준이야. 필기 내용은 고치거나 빼지 말고, 녹취에만 있는 내용만 추가해.',
+  '- 필기와 녹취가 서로 다르면(숫자·금액·담당자·날짜 등) 추가하지 말고 check에 "필기: … / 녹취: …" 형식으로 적어 줘.',
+  '- 논의 내용은 [현재 안건]의 안건명을 그대로 써서 안건별로 나눠 줘. 어느 안건에도 안 맞는 주제는 agenda_add에 새 안건으로 넣고, disc의 a에도 그 이름을 써.',
+  '- 회의 유형 가이드가 있으면 그 관점(핵심 방향·주요 목표)에서 중요한 내용을 놓치지 말아 줘.',
+  '- 녹취에 없는 내용은 지어내지 마. 이미 필기·결정·할 일에 있는 내용은 다시 넣지 마.',
+  '- 문장은 회의록 말투(~함, ~하기로 함)로 짧게, 한 줄에 하나씩 "· "로 시작해.',
+  '- "다음 주 금요일" 같은 날짜는 회의 날짜 기준으로 YYYY-MM-DD로 바꿔 줘. 모르면 빈칸.',
+  '- 설명 없이 아래 형식의 JSON 하나만 ```json 코드 블록으로 답해 줘. 해당 없는 항목은 빈 배열/빈칸.','',
+  '```json',
+  '{"agenda_add":["새 안건명"],"disc":[{"a":"안건명","t":"· 추가할 논의 내용\\n· …"}],"dec":[{"tag":"확정|보완|보류","t":"결정 내용"}],"act":[{"t":"할 일","who":"담당자","due":"YYYY-MM-DD","note":""}],"next":{"date":"","time":"","agenda":""},"etc":"","check":["필기: … / 녹취: …"]}',
+  '```','',
+  '[회의 정보]',`회의명: ${S.title||'-'}`,`날짜: ${S.date||'-'}${timeStr()}`,`참석자: ${S.people.join(', ')||'-'}`,`회의 목적: ${S.purpose||'-'}`);
+  if(t&&t.id!=='general'){L.push('',`[회의 유형 가이드] ${t.name}`);if(t.dir)L.push(`핵심 방향: ${t.dir}`);if(t.goal)L.push(`주요 목표: ${t.goal}`);
+    typeItems(t.id).forEach(it=>{L.push(`- ${it.title}`);(it.subs||[]).forEach(s=>L.push(`   · ${s}`))})}
+  L.push('','[현재 안건]');(ag.length?ag:['(없음)']).forEach((a,i)=>L.push(`${ag.length?i+1+'. ':''}${a}`));
+  L.push('','[내 필기 - 논의 내용]');if(disc.length)disc.forEach(d=>{L.push(`<${d.a||'안건 미지정'}>`);d.t.split('\n').filter(x=>x.trim()).forEach(x=>L.push(x.trim()))});else L.push('(없음)');
+  L.push('','[결정 사항]');if(dec.length)dec.forEach(d=>L.push(`- [${d.tag}] ${d.t}`));else L.push('(없음)');
+  L.push('','[할 일]');if(act.length)act.forEach(a=>L.push(`- ${a.t} / ${a.who||'-'} / ${a.due||'-'}`));else L.push('(없음)');
+  if(S.nDate||S.nAgenda.trim())L.push('',`[다음 회의] ${S.nDate||''} ${S.nTime||''} ${S.nAgenda.replace(/\n/g,', ')}`);
+  L.push('','[녹취록]',S.transcript.trim());
+  return L.join('\n');
+}
+function copyTrPrompt(){
+  if(!S.transcript.trim()){toast('녹취록을 먼저 붙여넣어 주세요');document.getElementById('transcript').focus();return}
+  copyToClip(buildTrPrompt(),'요청문을 복사했어요. Claude 앱에 붙여넣어 보내세요');
+}
+function parseTr(txt){
+  const m=txt.match(/```(?:json)?\s*([\s\S]*?)```/);let body=m?m[1]:txt;
+  const a=body.indexOf('{'),b=body.lastIndexOf('}');if(a<0||b<a)throw new Error('no json');
+  return JSON.parse(body.slice(a,b+1).replace(/[“”]/g,'"'));
+}
+function applyTrResult(){
+  const el=document.getElementById('trResult');const raw=el.value.trim();
+  if(!raw){toast('Claude 답변을 붙여넣어 주세요');el.focus();return}
+  let j;try{j=parseTr(raw)}catch(e){toast('답변을 읽지 못했어요. 코드 블록 전체를 복사해 주세요');return}
+  trUndo=JSON.parse(JSON.stringify(S));
+  const arr=v=>Array.isArray(v)?v:[];const str=v=>v==null?'':String(v).trim();
+  const norm=s=>s.replace(/^[\s·\-•*]+/,'').replace(/\s+/g,' ').trim();
+  let n={ag:0,disc:0,dec:0,act:0};
+  S.agenda=S.agenda.filter(a=>a.trim());S.disc=S.disc.filter(d=>d.a.trim()||d.t.trim());
+  S.dec=S.dec.filter(d=>d.t.trim());S.act=S.act.filter(a=>a.t.trim()||a.who.trim());
+  arr(j.agenda_add).map(str).filter(Boolean).forEach(a=>{if(!S.agenda.includes(a)){S.agenda.push(a);n.ag++}});
+  arr(j.disc).forEach(d=>{const a=str(d&&d.a),t=str(d&&d.t);if(!t)return;
+    const lines=t.split('\n').map(x=>x.trim()).filter(Boolean).map(x=>/^[·\-•*]/.test(x)?'· '+x.replace(/^[·\-•*]\s*/,''):'· '+x);
+    let row=S.disc.find(x=>x.a.trim()===a);
+    if(!row){row={a,t:''};S.disc.push(row);if(a&&!S.agenda.includes(a)){S.agenda.push(a);n.ag++}}
+    const have=new Set(row.t.split('\n').map(norm));const add=lines.filter(x=>!have.has(norm(x)));
+    if(add.length){row.t=(row.t.replace(/\s+$/,'')?row.t.replace(/\s+$/,'')+'\n':'')+add.join('\n');n.disc+=add.length}});
+  arr(j.dec).forEach(d=>{const t=str(d&&d.t);if(!t||S.dec.some(x=>norm(x.t)===norm(t)))return;
+    S.dec.push({t,tag:DTAGS.includes(str(d.tag))?str(d.tag):'확정'});n.dec++});
+  arr(j.act).forEach(a=>{const t=str(a&&a.t);if(!t||S.act.some(x=>norm(x.t)===norm(t)))return;
+    let due=str(a.due),note=str(a.note);if(due&&!/^\d{4}-\d{2}-\d{2}$/.test(due)){note=[due,note].filter(Boolean).join(' / ');due=''}
+    S.act.push({t,who:str(a.who),due,st:'예정',note});n.act++});
+  const nx=j.next||{};
+  if(!S.nDate&&/^\d{4}-\d{2}-\d{2}$/.test(str(nx.date)))S.nDate=str(nx.date);
+  if(!S.nTime&&/^\d{2}:\d{2}$/.test(str(nx.time)))S.nTime=str(nx.time);
+  if(str(nx.agenda)&&!S.nAgenda.includes(str(nx.agenda)))S.nAgenda=(S.nAgenda.trim()?S.nAgenda.trim()+'\n':'')+str(nx.agenda);
+  if(str(j.etc)&&!S.etc.includes(str(j.etc)))S.etc=(S.etc.trim()?S.etc.trim()+'\n':'')+str(j.etc);
+  arr(j.check).map(str).filter(Boolean).forEach(c=>{if(!S.trCheck.includes(c))S.trCheck.push(c)});
+  if(!S.agenda.length)S.agenda=[''];if(!S.disc.length)S.disc.push({a:'',t:''});if(!S.dec.length)S.dec.push({t:'',tag:'확정'});if(!S.act.length)S.act.push({t:'',who:'',due:'',st:'예정',note:''});
+  el.value='';fillFields();renderLists();renderTr();changed();
+  const total=n.ag+n.disc+n.dec+n.act;
+  toast(total||arr(j.check).length?`반영했어요 · 안건 ${n.ag} · 논의 ${n.disc}줄 · 결정 ${n.dec} · 할 일 ${n.act}${S.trCheck.length?` · 확인 필요 ${S.trCheck.length}`:''}`:'새로 추가할 내용이 없었어요');
+}
+function undoTr(){if(!trUndo)return;const keepTr=S.transcript;S=normalize(trUndo);S.transcript=keepTr;trUndo=null;fillFields();renderLists();renderTr();changed();toast('반영 전으로 되돌렸어요')}
 
 /* ---------- view / misc ---------- */
 function setView(v){document.body.dataset.view=v;document.getElementById('tabForm').classList.toggle('on',v==='form');document.getElementById('tabPrev').classList.toggle('on',v==='preview');window.scrollTo(0,0)}
