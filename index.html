@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>회의록 작성 툴</title>
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <meta name="theme-color" content="#1F3864">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -13,80 +14,104 @@
 <meta name="apple-mobile-web-app-title" content="회의록">
 <style>
 :root{
-  --navy:#1F3864; --navy2:#2E4C82; --label:#E8EDF5; --line:#7F8FA6; --line2:#D5DBE5;
-  --bg:#F3F5F9; --text:#1E2430; --muted:#8A93A3; --ok:#2E7D5B; --warn:#C47F17; --red:#C0392B; --gold:#F2B544;
+  --navy:#1F3864; --navy2:#2E4C82; --navy-soft:#EDF1F8; --label:#E8EDF5; --line:#7F8FA6; --line2:#E3E8EF; --line3:#CFD7E3;
+  --bg:#F3F5F9; --text:#1A2233; --sub:#4A5568; --muted:#8A93A3; --ok:#2E7D5B; --warn:#C47F17; --red:#C0392B; --gold:#F2B544; --gold2:#E9A825;
+  --r:14px; --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.05);
 }
-*{box-sizing:border-box}
-body{margin:0;font-family:"맑은 고딕","Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
-button,input,select,textarea{font-family:inherit;font-size:13px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"Pretendard Variable",Pretendard,"맑은 고딕","Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--text);font-size:14px;letter-spacing:-.01em;overflow-x:hidden}
+button,input,select,textarea{font-family:inherit;font-size:14px;letter-spacing:inherit}
+button{cursor:pointer}
+.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:8px;padding:10px 18px;flex-wrap:wrap}
-.top h1{font-size:17px;margin:0 14px 0 0;letter-spacing:1px}
+/* ---------- top bar ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:6px;padding:10px 18px;min-height:62px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .logo{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.14);display:grid;place-items:center;flex:none}
+.brand h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.02em;line-height:1.2}
+.status{display:block;font-size:11.5px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .sp{flex:1}
-.top button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:7px 12px;cursor:pointer}
-.top button:hover{background:rgba(255,255,255,.22)}
-.top button.pri{background:#fff;color:var(--navy);font-weight:700;border-color:#fff}
-.top button.done{background:var(--gold);border-color:var(--gold);color:#1F2A3D;font-weight:700}
-.status{font-size:12px;opacity:.8;margin-right:6px}
+.tb{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:10px;border:none;background:transparent;color:rgba(255,255,255,.92);font-weight:600;white-space:nowrap;transition:background .15s}
+.tb:hover{background:rgba(255,255,255,.12)}
+.tb:active{background:rgba(255,255,255,.2)}
+.tb-sep{width:1px;height:24px;background:rgba(255,255,255,.2);margin:0 6px}
+.tb.save{background:#fff;color:var(--navy);font-weight:700;padding:0 14px}
+.tb.save:hover{background:#F1F4FA}
+.tb.done{background:var(--gold);color:#1F2A3D;font-weight:700;padding:0 16px}
+.tb.done:hover{background:var(--gold2)}
 
-.wrap{display:grid;grid-template-columns:minmax(460px,1fr) minmax(480px,820px);gap:18px;padding:18px;align-items:start}
-
-.form{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
-.card{background:#fff;border:1px solid var(--line2);border-radius:10px;padding:14px 16px}
-.card h2{font-size:14px;color:var(--navy);margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.card h2 .n{background:var(--navy);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
-.card h2 .act{margin-left:auto;display:flex;gap:6px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
-.field{display:flex;flex-direction:column;gap:4px}
+/* ---------- layout ---------- */
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,820px);gap:20px;padding:20px;align-items:start;max-width:1720px;margin:0 auto}
+.form{display:flex;flex-direction:column;gap:14px;container-type:inline-size;min-width:0}
+.card{background:#fff;border:1px solid var(--line2);border-radius:var(--r);padding:16px 18px 18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:15px;font-weight:700;color:var(--text);margin:0 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:32px}
+.card h2 .n{background:var(--navy-soft);color:var(--navy);border-radius:8px;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;flex:none}
+.card h2 .n .i{width:15px;height:15px}
+.card h2 .act{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 12px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field.full{grid-column:1/-1}
-.field label{font-size:12px;color:var(--muted);font-weight:600}
-input,select,textarea{border:1px solid var(--line2);border-radius:6px;padding:7px 9px;background:#fff;color:var(--text);width:100%}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 2px rgba(46,76,130,.12)}
-textarea{resize:vertical;min-height:38px;line-height:1.5}
-.timebox{display:flex;gap:6px;align-items:center}
+.field label{font-size:12.5px;color:var(--sub);font-weight:600}
+input,select,textarea{border:1px solid var(--line3);border-radius:10px;padding:9px 11px;background:#fff;color:var(--text);width:100%;min-width:0;transition:border-color .15s,box-shadow .15s}
+input::placeholder,textarea::placeholder{color:#A7AFBD}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(46,76,130,.14)}
+select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A93A3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;padding-right:28px}
+textarea{resize:vertical;min-height:40px;line-height:1.55}
+.timebox{display:flex;gap:6px;align-items:center;min-width:0}
+.timebox input{flex:1}
 .timebox span{color:var(--muted)}
 
-.btn{border:1px solid var(--line2);background:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--navy);font-weight:600}
-.btn:hover{background:var(--label)}
-.btn.sm{padding:3px 8px;font-size:12px}
-.btn.lib{background:var(--navy);color:#fff;border-color:var(--navy)}
-.btn.lib:hover{background:var(--navy2)}
-.btn.del{color:var(--muted);border:none;background:none;font-size:16px;padding:2px 6px}
-.btn.del:hover{color:var(--red);background:none}
-.btn.star{color:#C9CFDA;border:none;background:none;font-size:17px;padding:2px 4px}
-.btn.star:hover{color:var(--gold);background:none}
-.hint{font-size:12px;color:var(--muted);margin-top:6px}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line3);background:#fff;border-radius:10px;padding:0 14px;height:38px;color:var(--navy);font-weight:600;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--navy-soft);border-color:#C3CDDD}
+.btn .i{width:16px;height:16px}
+.btn.sm{height:32px;padding:0 11px;font-size:13px;border-radius:9px}
+.card h2 .btn.sm{background:var(--navy-soft);border-color:transparent}
+.card h2 .btn.sm:hover{background:#E1E8F3}
+.btn.lib,.card h2 .btn.lib{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.lib:hover,.card h2 .btn.lib:hover{background:var(--navy2);border-color:var(--navy2)}
+.btn.del,.btn.star{border:none;background:none;height:38px;width:34px;padding:0;color:#A7AFBD;border-radius:8px}
+.btn.del .i,.btn.star .i{width:18px;height:18px}
+.btn.del:hover{color:var(--red);background:#FBEDEB}
+.btn.star:hover{color:var(--gold2);background:#FFF6E3}
+.hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
 
+/* ---------- type / stage ---------- */
 .typebar{display:flex;flex-wrap:wrap;gap:6px}
-.typebar button{border:1px solid var(--line2);background:#fff;border-radius:16px;padding:5px 12px;font-size:12px;cursor:pointer;color:#4A5568}
+.typebar button{border:1px solid var(--line3);background:#fff;border-radius:999px;padding:0 14px;height:34px;font-size:13px;color:var(--sub);font-weight:500}
+.typebar button:hover{border-color:var(--navy2);color:var(--navy)}
 .typebar button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
-.stagebox{background:#F6F8FC;border:1px solid var(--line2);border-left:3px solid var(--navy);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.6;margin-top:8px;color:#3A4558}
-.stagebox b{color:var(--navy)}
-.kw{display:inline-block;background:#fff;border:1px solid var(--line2);border-radius:10px;padding:0 7px;margin:1px 2px;font-size:11px;color:var(--navy2)}
+.stagebox{background:#F7F9FC;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.7;margin-top:10px;color:var(--sub)}
+.stagebox b{color:var(--navy);margin-right:4px}
+.kw{display:inline-block;background:#fff;border:1px solid var(--line2);border-radius:999px;padding:0 8px;margin:1px 2px;font-size:11px;color:var(--navy2);font-weight:600}
 
-.rows{display:flex;flex-direction:column;gap:6px}
-.row{display:flex;gap:6px;align-items:flex-start}
-.row .no{width:22px;flex:none;text-align:center;color:var(--muted);padding-top:8px;font-size:12px}
-.row.disc-row{display:grid;grid-template-columns:22px 170px 1fr 30px;gap:6px}
-.row.dec-row{display:grid;grid-template-columns:22px 84px 1fr 30px;gap:6px}
-.row.act-row{display:grid;grid-template-columns:22px 120px 140px 92px 1fr 30px;grid-template-areas:"no t t t t del" ". who due st note .";gap:6px;padding-bottom:8px;border-bottom:1px dashed var(--line2)}
+/* ---------- rows ---------- */
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:6px;align-items:flex-start;min-width:0}
+.row .no{width:22px;flex:none;text-align:center;color:var(--muted);padding-top:10px;font-size:12px;font-weight:700}
+.row.disc-row{display:grid;grid-template-columns:22px minmax(0,190px) minmax(0,1fr) 34px;gap:6px}
+.row.dec-row{display:grid;grid-template-columns:22px 92px minmax(0,1fr) 34px;gap:6px}
+.row.act-row{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 92px minmax(0,1.3fr) 34px;grid-template-areas:"no t t t t del" ". who due st note .";gap:6px;padding:10px;border:1px solid var(--line2);border-radius:12px;background:#FAFBFD}
 .act-row .no{grid-area:no}.act-row .a-t{grid-area:t}.act-row .a-who{grid-area:who}.act-row .a-due{grid-area:due}.act-row .a-st{grid-area:st}.act-row .a-note{grid-area:note}.act-row .a-del{grid-area:del}
-.empty{color:var(--muted);font-size:12px;padding:6px 0}
+.empty{color:var(--muted);font-size:12.5px;padding:8px 0}
 
-.chips{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line2);border-radius:6px;padding:6px;min-height:38px;align-items:center}
-.chip{background:var(--label);color:var(--navy);border-radius:14px;padding:3px 6px 3px 10px;font-size:12px;display:flex;align-items:center;gap:2px}
-.chip button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 3px}
-.chip button:hover{color:var(--red)}
-.chips input{border:none;flex:1;min-width:120px;padding:3px}
-.chips input:focus{box-shadow:none}
-.quick{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.quick button{border:1px dashed var(--line2);background:#fff;border-radius:12px;padding:2px 9px;font-size:11px;color:var(--muted);cursor:pointer}
-.quick button:hover{border-color:var(--navy2);color:var(--navy)}
+/* ---------- people ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line3);border-radius:10px;padding:6px;min-height:44px;align-items:center;background:#fff}
+.chips:focus-within{border-color:var(--navy2);box-shadow:0 0 0 3px rgba(46,76,130,.14)}
+.chip{background:var(--navy-soft);color:var(--navy);border-radius:999px;padding:4px 4px 4px 12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:2px}
+.chip button{border:none;background:none;color:var(--muted);font-size:16px;line-height:1;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;padding:0}
+.chip button:hover{color:var(--red);background:#fff}
+.chips input{border:none;flex:1;min-width:110px;padding:4px 6px;box-shadow:none!important;min-height:0}
+.chips .btn.sm{height:30px}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.quick button{border:1px dashed var(--line3);background:#fff;border-radius:999px;padding:0 11px;height:30px;font-size:12px;color:var(--sub)}
+.quick button:hover{border-color:var(--navy2);color:var(--navy);border-style:solid}
 
-.pv-wrap{position:sticky;top:64px}
-.pv-label{font-size:12px;color:var(--muted);margin:0 0 6px 2px}
-.paper{background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.08);border-radius:4px;padding:40px 46px;min-height:1000px}
-.doc{font-size:12.5px;color:#000}
+/* ---------- preview ---------- */
+.pv-wrap{position:sticky;top:82px;min-width:0}
+.pv-label{font-size:12px;color:var(--muted);margin:0 0 8px 4px}
+.paper{background:#fff;box-shadow:0 4px 24px rgba(16,24,40,.08);border-radius:6px;padding:40px 46px;min-height:1000px;overflow-x:auto}
+.doc{font-size:12.5px;color:#000;font-family:"맑은 고딕","Malgun Gothic","Pretendard Variable",Pretendard,sans-serif;letter-spacing:0}
 .doc .title{text-align:center;font-size:24px;font-weight:700;color:var(--navy);letter-spacing:10px;margin:0 0 18px}
 .doc table{width:100%;border-collapse:collapse;table-layout:fixed}
 .doc td,.doc th{border:1px solid var(--line);padding:6px 8px;vertical-align:middle;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap}
@@ -96,90 +121,148 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
 .doc ol{margin:0;padding-left:20px}
 .doc ol li{margin:3px 0}
 .doc .ph{color:#bbb}
-.st{display:inline-block;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700}
+.st{display:inline-block;white-space:nowrap;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
 .st.예정{background:#EEF1F6;color:#5A6577}
 .st.진행{background:#FFF4E0;color:var(--warn)}
 .st.완료,.st.확정{background:#E3F3EC;color:var(--ok)}
 .st.보류{background:#F7E6E4;color:var(--red)}
 .st.보완{background:#FFF4E0;color:var(--warn)}
 
-.modal{position:fixed;inset:0;background:rgba(15,25,45,.45);display:none;align-items:center;justify-content:center;z-index:50}
-.modal.on{display:flex}
-.mbox{background:#fff;border-radius:12px;width:min(820px,94vw);max-height:88vh;display:flex;flex-direction:column}
-.mhead{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;gap:10px;align-items:center}
-.mhead h3{margin:0;font-size:15px;color:var(--navy);flex:none}
-.mbody{overflow:auto;padding:10px 18px 16px;flex:1}
-.mfoot{padding:12px 18px;border-top:1px solid var(--line2);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(15,25,45,.42);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex;animation:fade .15s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.mbox{background:#fff;border-radius:18px;width:min(820px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(16,24,40,.25);overflow:hidden}
+.modal.on .mbox{animation:up .2s ease}
+.mhead{padding:16px 20px;border-bottom:1px solid var(--line2);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mhead h3{margin:0;font-size:16px;font-weight:700;color:var(--text);flex:none}
+.mhead input{flex:1;min-width:140px}
+.mbody{overflow:auto;padding:12px 20px 18px;flex:1;-webkit-overflow-scrolling:touch}
+.mfoot{padding:12px 20px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line2);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .list{width:100%;border-collapse:collapse}
-.list th,.list td{border-bottom:1px solid var(--line2);padding:9px 6px;text-align:left;font-size:13px}
+.list th,.list td{border-bottom:1px solid var(--line2);padding:12px 8px;text-align:left;font-size:13.5px}
 .list th{color:var(--muted);font-size:12px;font-weight:600}
 .list tr.item:hover{background:#F7F9FC;cursor:pointer}
 .list .ops{white-space:nowrap;text-align:right}
-
-.libitem{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line2);border-radius:8px;padding:10px 12px;margin-top:8px;cursor:pointer}
-.libitem:hover{border-color:var(--navy2)}
-.libitem.sel{border-color:var(--navy);background:#F4F7FC}
-.libitem input[type=checkbox]{width:18px;height:18px;min-height:0;flex:none;margin-top:2px;accent-color:var(--navy)}
-.libitem .tt{font-weight:700;color:var(--navy);font-size:13px}
-.libitem ul{margin:4px 0 0;padding-left:16px;font-size:12px;color:#4A5568;line-height:1.55}
-.libitem .mine{font-size:10px;background:var(--gold);color:#1F2A3D;border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:700}
+.list .ops .btn{margin-left:4px}
+.libitem{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line2);border-radius:12px;padding:12px 14px;margin-top:8px;cursor:pointer;transition:border-color .15s,background .15s}
+.libitem:hover{border-color:#B9C5D8}
+.libitem.sel{border-color:var(--navy);background:#F4F7FC;box-shadow:inset 0 0 0 1px var(--navy)}
+.libitem input[type=checkbox]{width:20px;height:20px;min-height:0;flex:none;margin-top:1px;accent-color:var(--navy)}
+.libitem .tt{font-weight:700;color:var(--text);font-size:14px}
+.libitem ul{margin:6px 0 0;padding-left:16px;font-size:12.5px;color:var(--sub);line-height:1.6}
+.libitem .mine{font-size:10.5px;background:#FFF1D1;color:#8A5A00;border-radius:999px;padding:1px 8px;margin-left:6px;font-weight:700}
 .libitem .ops{margin-left:auto;display:flex;gap:4px;flex:none}
-.editbox{border:1.5px dashed var(--navy2);border-radius:8px;padding:12px;margin-top:10px;background:#FAFBFE;display:none}
+.editbox{border:1.5px dashed var(--navy2);border-radius:12px;padding:14px;margin-top:10px;background:#FAFBFE;display:none}
 .editbox.on{display:block}
-.editbox .grid2{margin-bottom:8px}
-.chk{display:flex;align-items:center;gap:6px;font-size:12px;color:#4A5568;cursor:pointer}
-.chk input{width:16px;height:16px;min-height:0;accent-color:var(--navy)}
+.editbox .grid2{margin-bottom:10px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub);cursor:pointer}
+.chk input{width:18px;height:18px;min-height:0;accent-color:var(--navy);flex:none}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
-.toast.on{opacity:1}
-.trhelp{display:none;background:#F6F8FC;border:1px solid var(--line2);border-left:3px solid var(--navy);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.7;margin-bottom:10px;color:#3A4558}
+/* ---------- menu sheet ---------- */
+.modal.sheet{align-items:flex-start;justify-content:flex-end;padding:68px 18px 18px;background:rgba(15,25,45,.18)}
+.mbox.menu{width:300px;padding:8px;border-radius:16px;overflow:auto}
+.menu .grab{display:none}
+.menu .mtitle{font-size:11.5px;color:var(--muted);font-weight:700;padding:10px 12px 4px}
+.mi{display:flex;align-items:center;gap:12px;width:100%;border:none;background:none;text-align:left;padding:0 12px;height:46px;border-radius:10px;font-size:14.5px;color:var(--text);font-weight:500}
+.mi:hover,.mi:active{background:var(--navy-soft)}
+.mi .i{color:var(--navy2);width:19px;height:19px}
+.mi small{margin-left:auto;color:var(--muted);font-size:12px}
+.menu hr{border:none;border-top:1px solid var(--line2);margin:6px 4px}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,8px);background:#1A2233;color:#fff;padding:12px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:.22s;pointer-events:none;z-index:60;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- transcript card ---------- */
+.trhelp{display:none;background:#F7F9FC;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.8;margin-bottom:12px;color:var(--sub)}
 .trhelp.on{display:block}
-.tr-ops{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
-.trcheck{margin-top:12px;border:1px solid #F0D9A8;background:#FFF9EC;border-radius:8px;padding:10px 12px}
-.trcheck b{color:var(--warn);font-size:13px}
-.trcheck .ci{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:5px 0;border-top:1px dashed #F0D9A8}
+.trhelp b{color:var(--navy)}
+.tr-ops{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.trcheck{margin-top:14px;border:1px solid #F0D9A8;background:#FFF9EC;border-radius:12px;padding:12px 14px}
+.trcheck b{color:var(--warn);font-size:13.5px}
+.trcheck .ci{display:flex;gap:8px;align-items:center;font-size:13.5px;padding:8px 0;border-top:1px dashed #F0D9A8}
 .trcheck .ci:first-of-type{border-top:none}
 .trcheck .ci span{flex:1;white-space:pre-wrap}
+.backup-card{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:transparent;box-shadow:none;border-style:dashed}
+.backup-card .t{font-size:12.5px;color:var(--muted);flex:1;min-width:180px}
 
-/* ---- tablet / touch ---- */
+/* ---------- bottom bar (tablet/phone) ---------- */
 .mtabs{display:none}
-@container (max-width:520px){
-  .row.act-row{grid-template-columns:22px 1fr 1.2fr 86px 30px;grid-template-areas:"no t t t del" ". who due st ." ". note note note ."}
+.d-only{}
+@container (max-width:560px){
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .row.act-row{grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 34px;grid-template-areas:"no t t del" ". who due ." ". st note ."}
+  .row.dec-row{grid-template-columns:22px 84px minmax(0,1fr) 34px}
 }
 @container (max-width:800px){
-  .row.disc-row{grid-template-columns:22px 1fr 40px;grid-template-areas:"no a del" ". t t"}
+  .row.disc-row{grid-template-columns:22px minmax(0,1fr) 34px;grid-template-areas:"no a del" ". t t"}
   .disc-row .no{grid-area:no}.disc-row .d-a{grid-area:a}.disc-row .d-t{grid-area:t}.disc-row .d-del{grid-area:del}
 }
+@media (min-width:1101px) and (max-width:1500px){.wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.paper{padding:30px 22px}.doc{font-size:11.5px}.doc td,.doc th{padding:5px 4px}}
 @media (max-width:1100px){
-  .wrap{grid-template-columns:1fr}
-  .top{position:relative}
-  body{padding-bottom:78px}
-  .toast{bottom:92px}
-  .mtabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;gap:8px;background:var(--navy);padding:9px 14px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.15)}
-  .mtabs button{flex:1;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-weight:700;padding:12px;font-size:15px;border-radius:8px}
-  .mtabs button.on{background:#fff;color:var(--navy)}
-  .mtabs .m-save{flex:0 0 auto;background:#fff;color:var(--navy);border-color:#fff}
-  .mtabs .m-done{flex:0 0 auto;background:var(--gold);color:#1F2A3D;border-color:var(--gold)}
+  .wrap{grid-template-columns:minmax(0,1fr);padding:16px;max-width:860px}
+  .d-only{display:none!important}
+  .top{padding:8px 10px 8px 14px;padding-top:calc(8px + env(safe-area-inset-top))}
+  .tb .lbl{display:none}
+  .tb{width:44px;height:44px;padding:0;justify-content:center}
+  .tb .i{width:21px;height:21px}
+  body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(96px + env(safe-area-inset-bottom))}
+  .mtabs{display:flex;align-items:center;position:fixed;left:0;right:0;bottom:0;z-index:30;gap:8px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line2);padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(16,24,40,.06)}
+  .mtabs .seg{flex:1;display:flex;background:#EEF1F6;border-radius:12px;padding:4px;gap:4px;min-width:0}
+  .mtabs .seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:none;background:transparent;color:var(--sub);font-weight:700;height:44px;border-radius:9px;font-size:15px;white-space:nowrap}
+  .mtabs .seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(16,24,40,.12)}
+  .mtabs .m-save{flex:none;width:52px;height:52px;border-radius:12px;border:1px solid var(--line3);background:#fff;color:var(--navy);display:grid;place-items:center}
+  .mtabs .m-done{flex:none;display:flex;align-items:center;gap:6px;height:52px;padding:0 16px;border-radius:12px;border:none;background:var(--gold);color:#1F2A3D;font-weight:800;font-size:15px;white-space:nowrap}
+  .mtabs .i{width:20px;height:20px}
   body[data-view=form] .pv-wrap{display:none}
   body[data-view=preview] .form{display:none}
   .pv-wrap{position:static}
-  .paper{padding:28px 26px;min-height:0}
+  .paper{padding:28px 24px;min-height:0}
+  .modal{padding:0;align-items:flex-end}
+  .mbox{width:100%;max-height:90vh;border-radius:20px 20px 0 0}
+  .modal.sheet{padding:0;align-items:flex-end;justify-content:center}
+  .mbox.menu{width:100%;padding:6px 10px calc(12px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0}
+  .menu .grab{display:block;width:40px;height:5px;border-radius:3px;background:#D5DBE5;margin:6px auto 4px}
+  .mi{height:52px;font-size:15.5px}
 }
-@media (max-width:1350px){.paper{padding:30px 30px}}
+@media (max-width:600px){
+  .wrap{padding:12px;gap:12px}
+  .card{padding:14px 14px 16px;border-radius:12px}
+  .brand h1{font-size:15px}
+  .brand .logo{width:30px;height:30px}
+  .mtabs .seg button{font-size:14px;gap:4px}
+  .mtabs .seg button .i{display:none}
+  .mtabs .m-done span{display:none}
+  .mtabs .m-done{width:52px;padding:0;justify-content:center}
+  .paper{padding:20px 14px;border-radius:4px}
+  .doc{font-size:11.5px}
+  .list thead{display:none}
+  .list tr.item{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:12px 4px;border-bottom:1px solid var(--line2)}
+  .list tr.item td{border:none;padding:0}
+  .list tr.item td:nth-child(1){grid-column:1;font-size:12px;color:var(--muted)}
+  .list tr.item td:nth-child(2){grid-column:1}
+  .list tr.item td:nth-child(3){grid-column:2;grid-row:1}
+  .list tr.item td.ops{grid-column:1/-1;text-align:left;margin-top:8px}
+  .list tr.item td.ops .btn{margin:0 6px 0 0}
+}
 @media (pointer:coarse){
-  input,select,textarea{font-size:16px;padding:10px 11px;min-height:44px}
-  .btn{padding:8px 14px}
-  .btn.sm{padding:8px 14px;font-size:14px}
-  .btn.del,.btn.star{font-size:24px;padding:4px 8px;min-height:44px}
-  .top button{padding:10px 13px;font-size:14px}
-  .chip{font-size:14px;padding:5px 6px 5px 12px}
-  .chip button{font-size:20px;padding:0 6px}
-  .quick button,.typebar button{font-size:14px;padding:8px 14px}
-  .row .no{padding-top:12px}
-  .list td,.list th{padding:12px 6px}
+  input,select,textarea{font-size:16px;padding:10px 12px;min-height:46px}
+  select{padding-right:30px}
+  .btn{height:44px;padding:0 16px;font-size:14.5px}
+  .btn.sm{height:40px;padding:0 13px;font-size:14px}
+  .btn.del,.btn.star{height:46px;width:40px}
+  .card h2{font-size:16px}
+  .chip{font-size:14.5px;padding:5px 4px 5px 13px}
+  .chip button{width:30px;height:30px;font-size:19px}
+  .quick button{height:36px;font-size:13.5px;padding:0 13px}
+  .typebar button{height:40px;font-size:14px;padding:0 15px}
+  .row .no{padding-top:13px}
   .libitem{padding:14px}
   .libitem input[type=checkbox]{width:22px;height:22px}
-  .chk input{width:20px;height:20px}
+  .chk input{width:22px;height:22px}
   .a-due{padding-left:8px;padding-right:6px}
 }
 @media print{
@@ -197,21 +280,47 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
 </head>
 <body data-view="form">
 
-<div class="top">
-  <h1>회의록 작성 툴</h1>
-  <button onclick="newDoc()">＋ 새 회의록</button>
-  <button onclick="openList()">📂 저장 목록</button>
-  <button onclick="importOpen()">↺ 미완료 할 일 가져오기</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-todo" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/><circle cx="5" cy="12" r="1.2"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
+<symbol id="i-filecheck" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M9 15l2 2 4-4"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+<symbol id="i-clip" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M11.5 2.3a.6.6 0 0 1 1 0l2.6 5.3 5.8.9a.6.6 0 0 1 .3 1l-4.2 4.1 1 5.8a.6.6 0 0 1-.8.6L12 17.3 6.8 20a.6.6 0 0 1-.8-.6l1-5.8-4.2-4.1a.6.6 0 0 1 .3-1l5.8-.9z"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M8 13h8M8 17h5"/></symbol>
+</defs></svg>
+<header class="top">
+  <div class="brand"><span class="logo"><svg class="i"><use href="#i-note"/></svg></span><div style="min-width:0"><h1>회의록 작성 툴</h1><span class="status" id="status"></span></div></div>
   <span class="sp"></span>
-  <span class="status" id="status"></span>
-  <button id="installBtn" style="display:none" onclick="installApp()">⬇ 앱으로 설치</button>
-  <button class="pri" onclick="saveDoc()">💾 저장</button>
-  <button class="done" onclick="finishDoc()">✅ 작성 완료 · 한글 받기</button>
-  <button onclick="window.print()">🖨 인쇄 / PDF</button>
-  <button onclick="exportWord()">W 워드로 받기</button>
-  <button onclick="copyText()">📋 텍스트 복사</button>
-</div>
-<div class="mtabs"><button id="tabForm" class="on" onclick="setView('form')">✏️ 작성</button><button id="tabPrev" onclick="setView('preview')">📄 미리보기</button><button class="m-save" onclick="saveDoc()">💾 저장</button><button class="m-done" onclick="finishDoc()">✅ 완료 · 한글</button></div>
+  <button class="tb" onclick="newDoc()" title="새 회의록"><svg class="i"><use href="#i-plus"/></svg><span class="lbl">새 회의록</span></button>
+  <button class="tb" onclick="openList()" title="저장 목록"><svg class="i"><use href="#i-folder"/></svg><span class="lbl">저장 목록</span></button>
+  <button class="tb d-only" onclick="importOpen()" title="미완료 할 일 가져오기"><svg class="i"><use href="#i-todo"/></svg><span class="lbl">미완료 할 일</span></button>
+  <button class="tb" onclick="openMenu()" title="내보내기·더보기"><svg class="i"><use href="#i-more"/></svg><span class="lbl">더보기</span></button>
+  <span class="tb-sep d-only"></span>
+  <button class="tb save d-only" onclick="saveDoc()"><svg class="i"><use href="#i-save"/></svg><span>저장</span></button>
+  <button class="tb done d-only" onclick="finishDoc()"><svg class="i"><use href="#i-filecheck"/></svg><span>작성 완료 · 한글</span></button>
+</header>
+<nav class="mtabs">
+  <div class="seg"><button id="tabForm" class="on" onclick="setView('form')"><svg class="i"><use href="#i-pen"/></svg>작성</button><button id="tabPrev" onclick="setView('preview')"><svg class="i"><use href="#i-eye"/></svg>미리보기</button></div>
+  <button class="m-save" onclick="saveDoc()" title="저장" aria-label="저장"><svg class="i"><use href="#i-save"/></svg></button>
+  <button class="m-done" onclick="finishDoc()" title="작성 완료 · 한글 받기"><svg class="i"><use href="#i-filecheck"/></svg><span>완료 · 한글</span></button>
+</nav>
 
 <div class="wrap">
   <div class="form">
@@ -234,25 +343,25 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
     </div>
 
     <div class="card">
-      <h2><span class="n">1</span>회의 안건<span class="act"><button class="btn sm lib" onclick="openLib()">📚 안건 불러오기</button><button class="btn sm" onclick="addItem('agenda')">＋ 직접 추가</button></span></h2>
+      <h2><span class="n">1</span>회의 안건<span class="act"><button class="btn sm lib" onclick="openLib()"><svg class="i"><use href="#i-book"/></svg>안건 불러오기</button><button class="btn sm" onclick="addItem('agenda')"><svg class="i"><use href="#i-plus"/></svg>직접 추가</button></span></h2>
       <div class="rows" id="agenda"></div>
       <div class="hint">☆를 누르면 직접 쓴 안건이 현재 회의 유형의 「내 안건」으로 저장돼 다음에도 불러올 수 있어요.</div>
     </div>
 
     <div class="card">
-      <h2><span class="n">2</span>논의 내용<span class="act"><button class="btn sm" onclick="addItem('disc')">＋ 추가</button></span></h2>
+      <h2><span class="n">2</span>논의 내용<span class="act"><button class="btn sm" onclick="addItem('disc')"><svg class="i"><use href="#i-plus"/></svg>추가</button></span></h2>
       <div class="rows" id="disc"></div>
       <div class="hint">핵심 의견과 쟁점만 키워드로 적어도 충분해요. 안건 칸은 위에서 입력한 안건 중에서 고를 수 있어요.</div>
     </div>
 
     <div class="card">
-      <h2><span class="n">3</span>결정 사항<span class="act"><button class="btn sm" onclick="addItem('dec')">＋ 추가</button></span></h2>
+      <h2><span class="n">3</span>결정 사항<span class="act"><button class="btn sm" onclick="addItem('dec')"><svg class="i"><use href="#i-plus"/></svg>추가</button></span></h2>
       <div class="rows" id="dec"></div>
       <div class="hint">확정: 그대로 진행 / 보완: 조건부·추가 검토 후 확정 / 보류: 다음 회의로 넘김</div>
     </div>
 
     <div class="card">
-      <h2><span class="n">4</span>향후 조치 사항 (할 일)<span class="act"><button class="btn sm" onclick="addItem('act')">＋ 추가</button></span></h2>
+      <h2><span class="n">4</span>향후 조치 사항 (할 일)<span class="act"><button class="btn sm" onclick="addItem('act')"><svg class="i"><use href="#i-plus"/></svg>추가</button></span></h2>
       <div class="rows" id="act"></div>
       <div class="hint">담당자 칸에 참석자 이름이 추천으로 떠요. 다음 회의 때 「미완료 할 일 가져오기」로 이어받을 수 있어요.</div>
     </div>
@@ -272,7 +381,7 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
     </div>
 
     <div class="card tr-card">
-      <h2><span class="n">🎙</span>녹취록으로 보강<span class="act"><button class="btn sm" onclick="toggleTrHelp()">사용법</button></span></h2>
+      <h2><span class="n"><svg class="i"><use href="#i-mic"/></svg></span>녹취록으로 보강<span class="act"><button class="btn sm" onclick="toggleTrHelp()"><svg class="i"><use href="#i-help"/></svg>사용법</button></span></h2>
       <div class="trhelp" id="trHelp">
         <b>① 녹음</b> 삼성 <b>음성 녹음</b> 앱으로 회의를 녹음해요. (시작 전에 참석자에게 녹음한다고 알려 주세요)<br>
         <b>② 텍스트 변환</b> 녹음 파일 → 상단 <b>Galaxy AI</b> → <b>텍스트 변환</b> → 전체 복사<br>
@@ -283,21 +392,21 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
       </div>
       <div class="field"><label>녹취록 (텍스트 변환 결과)</label><textarea id="transcript" rows="4" placeholder="음성 녹음 앱에서 변환한 텍스트를 붙여넣으세요"></textarea></div>
       <div class="tr-ops">
-        <button class="btn lib" onclick="copyTrPrompt()">📋 보강 요청문 복사</button>
+        <button class="btn lib" onclick="copyTrPrompt()"><svg class="i"><use href="#i-clip"/></svg>보강 요청문 복사</button>
         <label class="chk"><input type="checkbox" id="trAppendix" onchange="S.trAppendix=this.checked;changed()"> 한글·워드 파일에 녹취 원문을 부록으로 넣기</label>
       </div>
       <div class="field" style="margin-top:10px"><label>결과 붙여넣기 (Claude 답변)</label><textarea id="trResult" rows="3" placeholder="Claude가 준 답을 그대로 붙여넣으세요"></textarea></div>
       <div class="tr-ops">
-        <button class="btn lib" onclick="applyTrResult()">✅ 회의록에 반영</button>
-        <button class="btn sm" id="trUndoBtn" style="display:none" onclick="undoTr()">↶ 반영 되돌리기</button>
+        <button class="btn lib" onclick="applyTrResult()"><svg class="i"><use href="#i-check"/></svg>회의록에 반영</button>
+        <button class="btn sm" id="trUndoBtn" style="display:none" onclick="undoTr()"><svg class="i"><use href="#i-undo"/></svg>반영 되돌리기</button>
       </div>
       <div id="trCheck"></div>
     </div>
 
-    <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <span style="font-size:12px;color:var(--muted);flex:1">백업 (회의록 + 내 안건 · 다른 기기로 옮기거나 보관할 때)</span>
-      <button class="btn sm" onclick="backup()">전체 백업 받기</button>
-      <button class="btn sm" onclick="document.getElementById('restoreFile').click()">백업 불러오기</button>
+    <div class="card backup-card">
+      <span class="t">백업 · 회의록과 내 안건을 다른 기기로 옮기거나 보관할 때</span>
+      <button class="btn sm" onclick="backup()"><svg class="i"><use href="#i-download"/></svg>백업 받기</button>
+      <button class="btn sm" onclick="document.getElementById('restoreFile').click()"><svg class="i"><use href="#i-upload"/></svg>불러오기</button>
       <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restore(this)">
     </div>
   </div>
@@ -305,6 +414,24 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
   <div class="pv-wrap">
     <p class="pv-label">미리보기 · 인쇄하면 이 화면만 출력됩니다</p>
     <div class="paper"><div class="doc" id="doc"></div></div>
+  </div>
+</div>
+
+<!-- more menu -->
+<div class="modal sheet" id="menuModal" onclick="if(event.target===this)closeModal('menuModal')">
+  <div class="mbox menu">
+    <div class="grab"></div>
+    <div class="mtitle">내보내기</div>
+    <button class="mi" onclick="mAct(finishDoc)"><svg class="i"><use href="#i-filecheck"/></svg>한글 파일로 받기<small>저장 포함</small></button>
+    <button class="mi" onclick="mAct(exportWord)"><svg class="i"><use href="#i-file"/></svg>워드로 받기</button>
+    <button class="mi" onclick="mAct(()=>window.print())"><svg class="i"><use href="#i-print"/></svg>인쇄 / PDF</button>
+    <button class="mi" onclick="mAct(copyText)"><svg class="i"><use href="#i-copy"/></svg>텍스트 복사<small>카톡·메일용</small></button>
+    <hr>
+    <div class="mtitle">회의록</div>
+    <button class="mi" onclick="mAct(importOpen)"><svg class="i"><use href="#i-todo"/></svg>미완료 할 일 가져오기</button>
+    <button class="mi" onclick="mAct(backup)"><svg class="i"><use href="#i-download"/></svg>전체 백업 받기</button>
+    <button class="mi" onclick="mAct(()=>document.getElementById('restoreFile').click())"><svg class="i"><use href="#i-upload"/></svg>백업 불러오기</button>
+    <button class="mi" id="installBtn" style="display:none" onclick="mAct(installApp)"><svg class="i"><use href="#i-phone"/></svg>앱으로 설치</button>
   </div>
 </div>
 
@@ -327,7 +454,7 @@ textarea{resize:vertical;min-height:38px;line-height:1.5}
 <!-- agenda library modal -->
 <div class="modal" id="libModal" onclick="if(event.target===this)closeModal('libModal')">
   <div class="mbox">
-    <div class="mhead"><h3>📚 안건 불러오기</h3><span style="flex:1"></span><button class="btn" onclick="closeModal('libModal')">닫기</button></div>
+    <div class="mhead"><h3>안건 불러오기</h3><span style="flex:1"></span><button class="btn" onclick="closeModal('libModal')">닫기</button></div>
     <div class="mbody">
       <div class="typebar" id="libTypes"></div>
       <div id="libStage"></div>
@@ -466,13 +593,13 @@ function autoGrow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
 
 function renderLists(){
   document.getElementById('agenda').innerHTML=S.agenda.length?S.agenda.map((v,i)=>
-    `<form class="row" onsubmit="event.preventDefault();addItem('agenda')"><span class="no">${i+1}</span><input data-k="agenda" data-i="${i}" value="${esc(v)}" placeholder="안건 입력" enterkeyhint="next" autocomplete="off"><button type="button" class="btn star" title="내 안건으로 저장" onclick="starAgenda(${i})">☆</button><button type="button" class="btn del" onclick="delItem('agenda',${i})">×</button></form>`).join(''):'<div class="empty">안건이 없어요. 「📚 안건 불러오기」나 「＋ 직접 추가」를 눌러 주세요.</div>';
+    `<form class="row" onsubmit="event.preventDefault();addItem('agenda')"><span class="no">${i+1}</span><input data-k="agenda" data-i="${i}" value="${esc(v)}" placeholder="안건 입력" enterkeyhint="next" autocomplete="off"><button type="button" class="btn star" title="내 안건으로 저장" onclick="starAgenda(${i})"><svg class="i"><use href="#i-star"/></svg></button><button type="button" class="btn del" onclick="delItem('agenda',${i})"><svg class="i"><use href="#i-x"/></svg></button></form>`).join(''):'<div class="empty">안건이 없어요. 「📚 안건 불러오기」나 「＋ 직접 추가」를 눌러 주세요.</div>';
   const ag=S.agenda.filter(a=>a.trim());
   document.getElementById('disc').innerHTML=S.disc.length?S.disc.map((d,i)=>
-    `<div class="row disc-row"><span class="no">${i+1}</span><input class="d-a" data-k="disc" data-i="${i}" data-f="a" value="${esc(d.a)}" placeholder="안건" list="agList" autocomplete="off"><textarea class="d-t" rows="2" data-k="disc" data-i="${i}" data-f="t" placeholder="주요 논의 내용">${esc(d.t)}</textarea><button class="btn del d-del" onclick="delItem('disc',${i})">×</button></div>`).join('')
+    `<div class="row disc-row"><span class="no">${i+1}</span><input class="d-a" data-k="disc" data-i="${i}" data-f="a" value="${esc(d.a)}" placeholder="안건" list="agList" autocomplete="off"><textarea class="d-t" rows="2" data-k="disc" data-i="${i}" data-f="t" placeholder="주요 논의 내용">${esc(d.t)}</textarea><button class="btn del d-del" onclick="delItem('disc',${i})"><svg class="i"><use href="#i-x"/></svg></button></div>`).join('')
     +`<datalist id="agList">${ag.map(a=>`<option value="${esc(a)}">`).join('')}</datalist>`:'<div class="empty">논의 내용이 없어요.</div>';
   document.getElementById('dec').innerHTML=S.dec.length?S.dec.map((v,i)=>
-    `<div class="row dec-row"><span class="no">${i+1}</span><select data-k="dec" data-i="${i}" data-f="tag">${DTAGS.map(s=>`<option ${s===v.tag?'selected':''}>${s}</option>`).join('')}</select><textarea rows="1" data-k="dec" data-i="${i}" data-f="t" placeholder="결정된 내용">${esc(v.t)}</textarea><button class="btn del" onclick="delItem('dec',${i})">×</button></div>`).join(''):'<div class="empty">결정 사항이 없어요.</div>';
+    `<div class="row dec-row"><span class="no">${i+1}</span><select data-k="dec" data-i="${i}" data-f="tag">${DTAGS.map(s=>`<option ${s===v.tag?'selected':''}>${s}</option>`).join('')}</select><textarea rows="1" data-k="dec" data-i="${i}" data-f="t" placeholder="결정된 내용">${esc(v.t)}</textarea><button class="btn del" onclick="delItem('dec',${i})"><svg class="i"><use href="#i-x"/></svg></button></div>`).join(''):'<div class="empty">결정 사항이 없어요.</div>';
   document.getElementById('act').innerHTML=S.act.length?
     S.act.map((a,i)=>`<div class="row act-row"><span class="no">${i+1}</span>
       <textarea class="a-t" rows="1" data-k="act" data-i="${i}" data-f="t" placeholder="할 일 (업무 내용)">${esc(a.t)}</textarea>
@@ -480,7 +607,7 @@ function renderLists(){
       <input class="a-due" type="date" data-k="act" data-i="${i}" data-f="due" value="${esc(a.due)}" title="완료 예정일">
       <select class="a-st" data-k="act" data-i="${i}" data-f="st">${STATUS.map(s=>`<option ${s===a.st?'selected':''}>${s}</option>`).join('')}</select>
       <input class="a-note" data-k="act" data-i="${i}" data-f="note" value="${esc(a.note)}" placeholder="비고" autocomplete="off">
-      <button class="btn del a-del" onclick="delItem('act',${i})">×</button></div>`).join('')
+      <button class="btn del a-del" onclick="delItem('act',${i})"><svg class="i"><use href="#i-x"/></svg></button></div>`).join('')
     +`<datalist id="pplList">${S.people.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>`:'<div class="empty">할 일이 없어요.</div>';
 
   document.querySelectorAll('.form [data-k]').forEach(el=>{
@@ -638,6 +765,8 @@ function updTitleList(){const ts=[...new Set(records().map(r=>r.data.title).filt
 function openCount(d){return(d.act||[]).filter(a=>a.t&&a.st!=='완료').length}
 function openList(){document.getElementById('search').value='';renderList();document.getElementById('listModal').classList.add('on')}
 function closeModal(id){document.getElementById(id).classList.remove('on')}
+function openMenu(){document.getElementById('menuModal').classList.add('on')}
+function mAct(fn){closeModal('menuModal');setTimeout(fn,60)}
 function renderList(){
   const q=document.getElementById('search').value.trim().toLowerCase();
   const list=records().filter(r=>!q||JSON.stringify(r.data).toLowerCase().includes(q)).sort((a,b)=>(b.data.date||'').localeCompare(a.data.date||'')||b.updated.localeCompare(a.updated));
@@ -871,7 +1000,7 @@ function undoTr(){if(!trUndo)return;const keepTr=S.transcript;S=normalize(trUndo
 /* ---------- view / misc ---------- */
 function setView(v){document.body.dataset.view=v;document.getElementById('tabForm').classList.toggle('on',v==='form');document.getElementById('tabPrev').classList.toggle('on',v==='preview');window.scrollTo(0,0)}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2200)}
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDoc()}if(e.key==='Escape'){['listModal','impModal','libModal'].forEach(closeModal)}});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDoc()}if(e.key==='Escape'){['listModal','impModal','libModal','menuModal'].forEach(closeModal)}});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
 
 /* ---------- init ---------- */
