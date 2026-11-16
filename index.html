@@ -169,6 +169,7 @@ textarea{resize:vertical;min-height:40px;line-height:1.55}
 .mi:hover,.mi:active{background:var(--navy-soft)}
 .mi .i{color:var(--navy2);width:19px;height:19px}
 .mi small{margin-left:auto;color:var(--muted);font-size:12px}
+.menu .ver{font-size:11.5px;color:var(--muted);text-align:center;padding:10px 0 4px}
 .menu hr{border:none;border-top:1px solid var(--line2);margin:6px 4px}
 
 /* ---------- toast ---------- */
@@ -440,6 +441,7 @@ textarea{resize:vertical;min-height:40px;line-height:1.55}
     <button class="mi" onclick="mAct(backup)"><svg class="i"><use href="#i-download"/></svg>전체 백업 받기</button>
     <button class="mi" onclick="mAct(()=>document.getElementById('restoreFile').click())"><svg class="i"><use href="#i-upload"/></svg>백업 불러오기</button>
     <button class="mi" id="installBtn" style="display:none" onclick="mAct(installApp)"><svg class="i"><use href="#i-phone"/></svg>앱으로 설치</button>
+    <div class="ver" id="appVer"></div>
   </div>
 </div>
 
@@ -773,7 +775,7 @@ function updTitleList(){const ts=[...new Set(records().map(r=>r.data.title).filt
 function openCount(d){return(d.act||[]).filter(a=>a.t&&a.st!=='완료').length}
 function openList(){document.getElementById('search').value='';renderList();document.getElementById('listModal').classList.add('on')}
 function closeModal(id){document.getElementById(id).classList.remove('on')}
-function openMenu(){document.getElementById('menuModal').classList.add('on')}
+function openMenu(){document.getElementById('appVer').textContent='버전 '+APP_VER;document.getElementById('menuModal').classList.add('on')}
 function mAct(fn){closeModal('menuModal');setTimeout(fn,60)}
 function renderList(){
   const q=document.getElementById('search').value.trim().toLowerCase();
@@ -1079,7 +1081,15 @@ let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display=''});
 window.addEventListener('appinstalled',()=>{deferredPrompt=null;document.getElementById('installBtn').style.display='none';toast('앱으로 설치했어요')});
 function installApp(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.finally(()=>{deferredPrompt=null;document.getElementById('installBtn').style.display='none'})}
-if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+if('serviceWorker' in navigator&&location.protocol!=='file:'){
+  const hadCtrl=!!navigator.serviceWorker.controller;let reloading=false;
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{
+    reg.update().catch(()=>{});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})})}).catch(()=>{}));
+  // 새 버전이 설치되면 작성 중인 내용을 임시 저장한 뒤 자동으로 새로고침
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadCtrl||reloading)return;reloading=true;lsSet(KEY_DRAFT,{id:curId,data:S});sessionStorage.setItem('mm_updated','1');location.reload()});
+}
+const APP_VER='v10 · 2026.11.16';
+if(sessionStorage.getItem('mm_updated')){sessionStorage.removeItem('mm_updated');setTimeout(()=>toast(`새 버전으로 업데이트했어요 (${APP_VER})`),600)}
 </script>
 </body>
 </html>
