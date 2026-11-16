@@ -1,5 +1,5 @@
 // 회의록 작성 툴 - 오프라인 캐시. 파일을 고치면 VERSION 숫자를 올려 주세요.
-const VERSION = 'minutes-v8';
+const VERSION = 'minutes-v9';
 const FILES = ['./', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 

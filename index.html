@@ -185,6 +185,13 @@ textarea{resize:vertical;min-height:40px;line-height:1.55}
 .trcheck .ci{display:flex;gap:8px;align-items:center;font-size:13.5px;padding:8px 0;border-top:1px dashed #F0D9A8}
 .trcheck .ci:first-of-type{border-top:none}
 .trcheck .ci span{flex:1;white-space:pre-wrap}
+.trmode{display:inline-flex;background:#EEF1F6;border-radius:10px;padding:3px;gap:3px;align-self:flex-start}
+.trmode button{border:none;background:transparent;border-radius:8px;height:34px;padding:0 14px;font-weight:700;color:var(--sub);font-size:13px}
+.trmode button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(16,24,40,.12)}
+.trorig{margin-top:12px;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;background:#FAFBFD;font-size:13px}
+.trorig summary{cursor:pointer;color:var(--navy2);font-weight:600}
+.trorig pre{white-space:pre-wrap;font-family:inherit;font-size:12.5px;color:var(--sub);margin:10px 0;max-height:300px;overflow:auto}
+@media (pointer:coarse){.trmode button{height:40px;font-size:14px}}
 .backup-card{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:transparent;box-shadow:none;border-style:dashed}
 .backup-card .t{font-size:12.5px;color:var(--muted);flex:1;min-width:180px}
 
@@ -390,7 +397,8 @@ textarea{resize:vertical;min-height:40px;line-height:1.55}
         <b>⑤ 반영</b> Claude가 준 답(코드 블록)을 복사해 「결과 붙여넣기」 칸에 넣고 「회의록에 반영」<br>
         <span style="color:var(--muted)">직접 쓴 필기는 지워지지 않고, 녹취에만 있는 내용이 덧붙어요. 필기와 녹취가 다른 부분은 아래 「확인 필요」에 따로 모여요.</span>
       </div>
-      <div class="field"><label>녹취록 (텍스트 변환 결과)</label><textarea id="transcript" rows="4" placeholder="음성 녹음 앱에서 변환한 텍스트를 붙여넣으세요"></textarea></div>
+      <div class="field"><label>정리 방식</label><div class="trmode" id="trMode"></div><div class="hint" id="trModeHint" style="margin-top:2px"></div></div>
+      <div class="field" style="margin-top:12px"><label>녹취록 (텍스트 변환 결과)</label><textarea id="transcript" rows="4" placeholder="음성 녹음 앱에서 변환한 텍스트를 붙여넣으세요"></textarea></div>
       <div class="tr-ops">
         <button class="btn lib" onclick="copyTrPrompt()"><svg class="i"><use href="#i-clip"/></svg>보강 요청문 복사</button>
         <label class="chk"><input type="checkbox" id="trAppendix" onchange="S.trAppendix=this.checked;changed()"> 한글·워드 파일에 녹취 원문을 부록으로 넣기</label>
@@ -537,11 +545,11 @@ function typeItems(id,withHidden){const d=libData();const t=typeById(id);if(!t)r
 function today(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
 function blank(){return{type:'',title:'',purpose:'',date:today(),start:'',end:'',place:'',host:'',writer:'',people:[],
   agenda:[''],disc:[{a:'',t:''}],dec:[{t:'',tag:'확정'}],act:[{t:'',who:'',due:'',st:'예정',note:''}],
-  nDate:'',nTime:'',nAgenda:'',etc:'',transcript:'',trAppendix:false,trCheck:[]}}
+  nDate:'',nTime:'',nAgenda:'',etc:'',transcript:'',trAppendix:false,trCheck:[],trOrig:''}}
 function normalize(d){const s=Object.assign(blank(),JSON.parse(JSON.stringify(d||{})));
   s.dec=(s.dec||[]).map(x=>typeof x==='string'?{t:x,tag:'확정'}:{t:x.t||'',tag:x.tag||'확정'});
   s.act=(s.act||[]).map(a=>({t:'',who:'',due:'',st:'예정',note:'',...a}));
-  s.disc=(s.disc||[]).map(x=>({a:'',t:'',...x}));s.agenda=(s.agenda||[]).map(String);s.people=s.people||[];s.trCheck=Array.isArray(s.trCheck)?s.trCheck.map(String):[];s.trAppendix=!!s.trAppendix;return s}
+  s.disc=(s.disc||[]).map(x=>({a:'',t:'',...x}));s.agenda=(s.agenda||[]).map(String);s.people=s.people||[];s.trCheck=Array.isArray(s.trCheck)?s.trCheck.map(String):[];s.trAppendix=!!s.trAppendix;s.trOrig=String(s.trOrig||'');return s}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 function fmtDate(d){if(!d)return'';const x=new Date(d+'T00:00');if(isNaN(x))return d;return`${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')} (${'일월화수목금토'[x.getDay()]})`}
@@ -779,7 +787,7 @@ function renderList(){
     if(op==='del'){if(!confirm(`「${r.data.title}」(${fmtDate(r.data.date)})을 삭제할까요?`))return;lsSet(KEY_LIST,records().filter(x=>x.id!==id));if(curId===id){curId=null;dirty=true;setStatus()}renderList();updTitleList();return}
     if(dirty&&!confirm('저장하지 않은 내용이 있어요. 계속할까요?'))return;
     if(op==='copy'){const d=normalize(r.data);d.date=d.nDate||today();d.start=d.nTime||d.start;d.agenda=d.nAgenda?d.nAgenda.split('\n').filter(Boolean):[''];
-      d.disc=[{a:'',t:''}];d.dec=[{t:'',tag:'확정'}];d.purpose='';d.act=d.act.filter(a=>a.t&&a.st!=='완료');if(!d.act.length)d.act=[{t:'',who:'',due:'',st:'예정',note:''}];d.nDate='';d.nTime='';d.nAgenda='';d.etc='';d.transcript='';d.trCheck=[];d.trAppendix=false;
+      d.disc=[{a:'',t:''}];d.dec=[{t:'',tag:'확정'}];d.purpose='';d.act=d.act.filter(a=>a.t&&a.st!=='완료');if(!d.act.length)d.act=[{t:'',who:'',due:'',st:'예정',note:''}];d.nDate='';d.nTime='';d.nAgenda='';d.etc='';d.transcript='';d.trCheck=[];d.trAppendix=false;d.trOrig='';
       loadState(d,null);dirty=true;setStatus();toast('지난 회의 기준으로 새 회의록을 만들었어요 (미완료 할 일 포함)')}
     else{loadState(r.data,r.id);dirty=false;setStatus()}
     lsSet(KEY_DRAFT,{id:curId,data:S});closeModal('listModal')});
@@ -917,44 +925,84 @@ function finishDoc(){if(saveDoc())exportHwp()}
 let trUndo=null;
 function toggleTrHelp(){document.getElementById('trHelp').classList.toggle('on')}
 function renderTr(){
+  const md=trMode();
+  document.getElementById('trMode').innerHTML=[['merge','통합 정리'],['append','덧붙이기만']].map(([k,v])=>`<button class="${md===k?'on':''}" onclick="setTrMode('${k}')">${v}</button>`).join('');
+  document.getElementById('trModeHint').textContent=md==='merge'?'필기와 녹취를 합쳐 안건별로 매끄럽게 다시 써요. 중복 안건도 하나로 합쳐요. (반영 전 필기는 원본으로 보관)':'필기는 그대로 두고 녹취에만 있는 내용을 아래에 덧붙여요.';
   document.getElementById('trAppendix').checked=!!S.trAppendix;
   document.getElementById('trUndoBtn').style.display=trUndo?'':'none';
   const c=S.trCheck||[];
   document.getElementById('trCheck').innerHTML=c.length?`<div class="trcheck"><b>⚠ 확인 필요 ${c.length}건</b> <span style="font-size:12px;color:var(--muted)">필기와 녹취가 다르거나 애매한 부분이에요. 확인 후 위 칸을 직접 고치고 ✓를 눌러 지우세요.</span>
     ${c.map((x,i)=>`<div class="ci"><span>${esc(x)}</span><button class="btn sm" onclick="S.trCheck.splice(${i},1);renderTr();changed()">✓</button></div>`).join('')}</div>`:'';
+  if(S.trOrig)document.getElementById('trCheck').innerHTML+=`<details class="trorig"><summary>반영 전 필기 원본 보기</summary><pre>${esc(S.trOrig)}</pre><button class="btn sm" onclick="if(confirm('보관한 필기 원본을 지울까요?')){S.trOrig='';renderTr();changed()}">원본 지우기</button></details>`;
 }
 function copyToClip(txt,msg){
   (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast(msg))
    .catch(()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast(msg)});
 }
+const TRM_KEY='mm_trmode_v1';
+function trMode(){return ls(TRM_KEY,'merge')==='append'?'append':'merge'}
+function setTrMode(m){lsSet(TRM_KEY,m);renderTr()}
+/* 안건 이름 비교: 띄어쓰기·쉼표·기호 무시, 포함 관계·글자 유사도로 같은 안건 판단 */
+const akey=s=>String(s||'').toLowerCase().replace(/[\s,.·:;()\[\]{}\-~"'`/\\|<>!?・]/g,'');
+function bigr(s){const a=[];for(let i=0;i<s.length-1;i++)a.push(s.slice(i,i+2));return a}
+function sim(a,b){a=akey(a);b=akey(b);if(!a||!b)return 0;if(a===b)return 1;
+  if(Math.min(a.length,b.length)>=3&&(a.includes(b)||b.includes(a)))return .9;
+  const x=bigr(a),y=bigr(b);if(!x.length||!y.length)return 0;const m=new Map();y.forEach(g=>m.set(g,(m.get(g)||0)+1));
+  let n=0;x.forEach(g=>{const c=m.get(g);if(c){n++;m.set(g,c-1)}});return 2*n/(x.length+y.length)}
+function bestMatch(name,list,th=.6){let bi=-1,bs=0;list.forEach((v,i)=>{const s=sim(name,v);if(s>bs){bs=s;bi=i}});return bs>=th?bi:-1}
+const cleanAg=s=>String(s||'').trim().replace(/^[\d.\s]+(?=\S)/,'').replace(/[\s,，;·]+$/,'').trim();
+const bullet=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>'· '+x.replace(/^[·\-•*]\s*/,''));
+const lineKey=s=>akey(String(s).replace(/^[·\-•*]\s*/,''));
+function sameLine(a,b){const x=lineKey(a),y=lineKey(b);return x===y||(Math.min(x.length,y.length)>=8&&(x.includes(y)||y.includes(x)))||sim(a,b)>=.85}
+
 function buildTrPrompt(){
-  const {ag,dec,disc,act}=clean();const t=S.type&&typeById(S.type);const L=[];
-  L.push('아래 회의의 내 필기와 녹취록을 비교해서 회의록을 보강해 줘.','',
+  const {ag,dec,disc,act}=clean();const t=S.type&&typeById(S.type);const L=[];const merge=trMode()==='merge';
+  if(merge){
+  L.push('아래 회의의 내 필기와 녹취록을 합쳐서, 안건별 논의 내용을 하나의 매끄러운 회의록으로 다시 정리해 줘.','',
   '[규칙]',
-  '- 내 필기가 기준이야. 필기 내용은 고치거나 빼지 말고, 녹취에만 있는 내용만 추가해.',
-  '- 필기와 녹취가 서로 다르면(숫자·금액·담당자·날짜 등) 추가하지 말고 check에 "필기: … / 녹취: …" 형식으로 적어 줘.',
-  '- 논의 내용은 [현재 안건]의 안건명을 그대로 써서 안건별로 나눠 줘. 어느 안건에도 안 맞는 주제는 agenda_add에 새 안건으로 넣고, disc의 a에도 그 이름을 써.',
-  '- 회의 유형 가이드가 있으면 그 관점(핵심 방향·주요 목표)에서 중요한 내용을 놓치지 말아 줘.',
-  '- 녹취에 없는 내용은 지어내지 마. 이미 필기·결정·할 일에 있는 내용은 다시 넣지 마.',
-  '- 문장은 회의록 말투(~함, ~하기로 함)로 짧게, 한 줄에 하나씩 "· "로 시작해.',
-  '- "다음 주 금요일" 같은 날짜는 회의 날짜 기준으로 YYYY-MM-DD로 바꿔 줘. 모르면 빈칸.',
-  '- 설명 없이 아래 형식의 JSON 하나만 ```json 코드 블록으로 답해 줘. 해당 없는 항목은 빈 배열/빈칸.','',
+  '- agenda: [현재 안건]의 이름과 순서를 그대로 유지해. 같은 안건이 이름만 조금 다르게 중복돼 있으면 하나로 합치고(쉼표·오타 정리), 어느 안건에도 안 맞는 주제는 뒤에 새 안건으로 추가해. 기존 안건을 빼지는 마.',
+  '- disc: agenda의 모든 안건마다 딱 하나씩. a에는 agenda에 쓴 이름을 글자 그대로 써.',
+  '- 필기의 안건 칸 이름이 실제 안건과 다르거나, 한 칸에 여러 주제가 섞여 있으면 내용에 맞는 안건으로 옮겨서 정리해.',
+  '- 필기에 있는 사실(숫자·이름·업체·일정·결론)은 하나도 빠뜨리지 말고 녹취 내용과 합쳐. 필기와 녹취에 같은 내용이 있으면 한 번만 써.',
+  '- 흐름: 안건마다 현황·배경 → 쟁점·우려 → 결론·향후 방향 순서로 써. 이어지는 내용은 "~했으나", "~하여", "~에 따라" 같은 연결어로 한 문장에 묶고, 서로 다른 주제일 때만 줄을 나눠.',
+  '  나쁜 예) · 스파르타 팀 등 팀별 인원 점검함 / · DL 관련 팀은 이탈 시 리스크가 큼 / · 이탈 방지 필요성 강조됨',
+  '  좋은 예) · 스파르타 팀 등 팀별 인원을 점검했으나, DL 관련 팀은 팀장·팀원 이탈 시 리스크가 커 회사 차원의 이탈 방지와 철저한 관리 필요성이 내부적으로 강조됨',
+  '- 회의록 말투(~함, ~하기로 함, ~중임)로, 한 줄에 하나씩 "· "로 시작, 안건당 2~5줄.',
+  '- 필기와 녹취가 다르면(숫자·금액·담당자·날짜 등) 필기 기준으로 쓰고 check에 "필기: … / 녹취: …"로 적어 줘.',
+  '- dec·act에는 [결정 사항]·[할 일]에 이미 있는 것과 겹치지 않는 새 항목만 넣어.',
+  '- 녹취에 없는 내용은 지어내지 마. "다음 주 금요일" 같은 날짜는 회의 날짜 기준 YYYY-MM-DD로 바꾸고, 모르면 빈칸.',
+  '- 설명 없이 아래 형식의 JSON 하나만 ```json 코드 블록으로 답해 줘.','',
   '```json',
-  '{"agenda_add":["새 안건명"],"disc":[{"a":"안건명","t":"· 추가할 논의 내용\\n· …"}],"dec":[{"tag":"확정|보완|보류","t":"결정 내용"}],"act":[{"t":"할 일","who":"담당자","due":"YYYY-MM-DD","note":""}],"next":{"date":"","time":"","agenda":""},"etc":"","check":["필기: … / 녹취: …"]}',
-  '```','',
-  '[회의 정보]',`회의명: ${S.title||'-'}`,`날짜: ${S.date||'-'}${timeStr()}`,`참석자: ${S.people.join(', ')||'-'}`,`회의 목적: ${S.purpose||'-'}`);
+  '{"mode":"merge","agenda":["안건1","안건2"],"disc":[{"a":"안건1","t":"· …\\n· …"}],"dec":[{"tag":"확정|보완|보류","t":"결정 내용"}],"act":[{"t":"할 일","who":"담당자","due":"YYYY-MM-DD","note":""}],"next":{"date":"","time":"","agenda":""},"etc":"","check":[]}',
+  '```','');
+  }else{
+  L.push('아래 회의의 내 필기와 녹취록을 비교해서 녹취에만 있는 내용을 찾아 줘.','',
+  '[규칙]',
+  '- 내 필기는 고치지 않아. 필기에 이미 있는 내용(표현이 달라도 같은 뜻이면)은 절대 다시 넣지 마.',
+  '- disc의 a에는 [현재 안건]의 이름을 글자 그대로 써. 어느 안건에도 안 맞는 주제만 agenda_add에 새 안건으로 넣어.',
+  '- 이어지는 내용은 연결어로 한 문장에 묶고, 회의록 말투(~함, ~하기로 함)로 한 줄에 하나씩 "· "로 시작해.',
+  '- 필기와 녹취가 다르면 추가하지 말고 check에 "필기: … / 녹취: …"로 적어 줘.',
+  '- 녹취에 없는 내용은 지어내지 마. 날짜는 회의 날짜 기준 YYYY-MM-DD.',
+  '- 설명 없이 아래 형식의 JSON 하나만 ```json 코드 블록으로 답해 줘.','',
+  '```json',
+  '{"mode":"append","agenda_add":[],"disc":[{"a":"안건명","t":"· …"}],"dec":[{"tag":"확정|보완|보류","t":""}],"act":[{"t":"","who":"","due":"","note":""}],"next":{"date":"","time":"","agenda":""},"etc":"","check":[]}',
+  '```','');
+  }
+  L.push('[회의 정보]',`회의명: ${S.title||'-'}`,`날짜: ${S.date||'-'}${timeStr()}`,`참석자: ${S.people.join(', ')||'-'}`,`회의 목적: ${S.purpose||'-'}`);
   if(t&&t.id!=='general'){L.push('',`[회의 유형 가이드] ${t.name}`);if(t.dir)L.push(`핵심 방향: ${t.dir}`);if(t.goal)L.push(`주요 목표: ${t.goal}`);
     typeItems(t.id).forEach(it=>{L.push(`- ${it.title}`);(it.subs||[]).forEach(s=>L.push(`   · ${s}`))})}
-  L.push('','[현재 안건]');(ag.length?ag:['(없음)']).forEach((a,i)=>L.push(`${ag.length?i+1+'. ':''}${a}`));
-  L.push('','[내 필기 - 논의 내용]');if(disc.length)disc.forEach(d=>{L.push(`<${d.a||'안건 미지정'}>`);d.t.split('\n').filter(x=>x.trim()).forEach(x=>L.push(x.trim()))});else L.push('(없음)');
+  L.push('','[현재 안건]');(ag.length?ag:['(없음)']).forEach((a,i)=>L.push(`${ag.length?i+1+'. ':''}${cleanAg(a)}`));
+  L.push('','[내 필기 - 논의 내용] (안건 칸에 적은 이름 / 적은 내용)');
+  if(disc.length)disc.forEach((d,i)=>{L.push(`<칸 ${i+1}: ${d.a||'안건 미지정'}>`);d.t.split('\n').filter(x=>x.trim()).forEach(x=>L.push(x.trim()))});else L.push('(없음)');
   L.push('','[결정 사항]');if(dec.length)dec.forEach(d=>L.push(`- [${d.tag}] ${d.t}`));else L.push('(없음)');
   L.push('','[할 일]');if(act.length)act.forEach(a=>L.push(`- ${a.t} / ${a.who||'-'} / ${a.due||'-'}`));else L.push('(없음)');
   if(S.nDate||S.nAgenda.trim())L.push('',`[다음 회의] ${S.nDate||''} ${S.nTime||''} ${S.nAgenda.replace(/\n/g,', ')}`);
-  L.push('','[녹취록]',S.transcript.trim());
+  if(S.etc.trim())L.push('',`[기타] ${S.etc.replace(/\n/g,' / ')}`);
+  L.push('','[녹취록]',S.transcript.trim()||'(녹취 없음 - 필기만 정리)');
   return L.join('\n');
 }
 function copyTrPrompt(){
-  if(!S.transcript.trim()){toast('녹취록을 먼저 붙여넣어 주세요');document.getElementById('transcript').focus();return}
+  if(!S.transcript.trim()&&trMode()==='append'){toast('녹취록을 먼저 붙여넣어 주세요');document.getElementById('transcript').focus();return}
   copyToClip(buildTrPrompt(),'요청문을 복사했어요. Claude 앱에 붙여넣어 보내세요');
 }
 function parseTr(txt){
@@ -968,20 +1016,38 @@ function applyTrResult(){
   let j;try{j=parseTr(raw)}catch(e){toast('답변을 읽지 못했어요. 코드 블록 전체를 복사해 주세요');return}
   trUndo=JSON.parse(JSON.stringify(S));
   const arr=v=>Array.isArray(v)?v:[];const str=v=>v==null?'':String(v).trim();
-  const norm=s=>s.replace(/^[\s·\-•*]+/,'').replace(/\s+/g,' ').trim();
+  const merge=j.mode==='merge'||Array.isArray(j.agenda);
   let n={ag:0,disc:0,dec:0,act:0};
-  S.agenda=S.agenda.filter(a=>a.trim());S.disc=S.disc.filter(d=>d.a.trim()||d.t.trim());
-  S.dec=S.dec.filter(d=>d.t.trim());S.act=S.act.filter(a=>a.t.trim()||a.who.trim());
-  arr(j.agenda_add).map(str).filter(Boolean).forEach(a=>{if(!S.agenda.includes(a)){S.agenda.push(a);n.ag++}});
-  arr(j.disc).forEach(d=>{const a=str(d&&d.a),t=str(d&&d.t);if(!t)return;
-    const lines=t.split('\n').map(x=>x.trim()).filter(Boolean).map(x=>/^[·\-•*]/.test(x)?'· '+x.replace(/^[·\-•*]\s*/,''):'· '+x);
-    let row=S.disc.find(x=>x.a.trim()===a);
-    if(!row){row={a,t:''};S.disc.push(row);if(a&&!S.agenda.includes(a)){S.agenda.push(a);n.ag++}}
-    const have=new Set(row.t.split('\n').map(norm));const add=lines.filter(x=>!have.has(norm(x)));
-    if(add.length){row.t=(row.t.replace(/\s+$/,'')?row.t.replace(/\s+$/,'')+'\n':'')+add.join('\n');n.disc+=add.length}});
-  arr(j.dec).forEach(d=>{const t=str(d&&d.t);if(!t||S.dec.some(x=>norm(x.t)===norm(t)))return;
+  const oldAg=S.agenda.map(cleanAg).filter(Boolean);
+  S.disc=S.disc.filter(d=>d.a.trim()||d.t.trim());S.dec=S.dec.filter(d=>d.t.trim());S.act=S.act.filter(a=>a.t.trim()||a.who.trim());
+  // 안건 정리 (이름이 비슷한 중복은 하나로)
+  let ag=[];const addAg=a=>{a=cleanAg(a);if(!a)return-1;const i=bestMatch(a,ag,.8);if(i>=0)return i;ag.push(a);return ag.length-1};
+  if(merge){arr(j.agenda).forEach(addAg);oldAg.forEach(o=>{if(bestMatch(o,ag)<0)addAg(o)})}
+  else{oldAg.forEach(addAg);arr(j.agenda_add).forEach(addAg)}
+  n.ag=Math.max(0,ag.length-new Set(oldAg.map(akey)).size);
+  const findAg=a=>{let i=bestMatch(a,ag);if(i<0)i=addAg(a);return i};
+  if(merge){
+    const rows=[];
+    arr(j.disc).forEach(d=>{const t=bullet(str(d&&d.t));if(!t.length)return;const i=findAg(str(d&&d.a)||'기타');
+      const r=rows.find(x=>x.i===i);if(r)t.forEach(x=>{if(!r.l.some(y=>sameLine(x,y)))r.l.push(x)});else rows.push({i,l:t})});
+    if(rows.length){
+      const before=S.disc.map(d=>`<${d.a||'안건 미지정'}>\n${d.t}`).join('\n\n').trim();
+      if(before)S.trOrig=before;
+      rows.sort((a,b)=>a.i-b.i);S.disc=rows.map(r=>({a:ag[r.i],t:r.l.join('\n')}));n.disc=rows.length;
+    }
+  }else{
+    // 기존 칸의 안건 이름도 정리된 안건 이름으로 맞춤
+    S.disc.forEach(d=>{if(d.a.trim()){const i=bestMatch(d.a,ag);if(i>=0)d.a=ag[i]}});
+    arr(j.disc).forEach(d=>{const t=bullet(str(d&&d.t));if(!t.length)return;const name=ag[findAg(str(d&&d.a)||'기타')];
+      let row=S.disc.find(x=>x.a===name);if(!row){row={a:name,t:''};S.disc.push(row)}
+      const all=S.disc.flatMap(x=>x.t.split('\n')).filter(x=>x.trim());
+      const add=t.filter(x=>!all.some(y=>sameLine(x,y)));
+      if(add.length){row.t=(row.t.replace(/\s+$/,'')?row.t.replace(/\s+$/,'')+'\n':'')+add.join('\n');n.disc+=add.length}});
+  }
+  S.agenda=ag.length?ag:[''];
+  arr(j.dec).forEach(d=>{const t=str(d&&d.t);if(!t||S.dec.some(x=>sameLine(x.t,t)))return;
     S.dec.push({t,tag:DTAGS.includes(str(d.tag))?str(d.tag):'확정'});n.dec++});
-  arr(j.act).forEach(a=>{const t=str(a&&a.t);if(!t||S.act.some(x=>norm(x.t)===norm(t)))return;
+  arr(j.act).forEach(a=>{const t=str(a&&a.t);if(!t||S.act.some(x=>sameLine(x.t,t)))return;
     let due=str(a.due),note=str(a.note);if(due&&!/^\d{4}-\d{2}-\d{2}$/.test(due)){note=[due,note].filter(Boolean).join(' / ');due=''}
     S.act.push({t,who:str(a.who),due,st:'예정',note});n.act++});
   const nx=j.next||{};
@@ -990,10 +1056,10 @@ function applyTrResult(){
   if(str(nx.agenda)&&!S.nAgenda.includes(str(nx.agenda)))S.nAgenda=(S.nAgenda.trim()?S.nAgenda.trim()+'\n':'')+str(nx.agenda);
   if(str(j.etc)&&!S.etc.includes(str(j.etc)))S.etc=(S.etc.trim()?S.etc.trim()+'\n':'')+str(j.etc);
   arr(j.check).map(str).filter(Boolean).forEach(c=>{if(!S.trCheck.includes(c))S.trCheck.push(c)});
-  if(!S.agenda.length)S.agenda=[''];if(!S.disc.length)S.disc.push({a:'',t:''});if(!S.dec.length)S.dec.push({t:'',tag:'확정'});if(!S.act.length)S.act.push({t:'',who:'',due:'',st:'예정',note:''});
+  if(!S.disc.length)S.disc.push({a:'',t:''});if(!S.dec.length)S.dec.push({t:'',tag:'확정'});if(!S.act.length)S.act.push({t:'',who:'',due:'',st:'예정',note:''});
   el.value='';fillFields();renderLists();renderTr();changed();
-  const total=n.ag+n.disc+n.dec+n.act;
-  toast(total||arr(j.check).length?`반영했어요 · 안건 ${n.ag} · 논의 ${n.disc}줄 · 결정 ${n.dec} · 할 일 ${n.act}${S.trCheck.length?` · 확인 필요 ${S.trCheck.length}`:''}`:'새로 추가할 내용이 없었어요');
+  toast(merge?`안건별로 다시 정리했어요 · 안건 ${S.agenda.filter(a=>a.trim()).length}개 · 결정 +${n.dec} · 할 일 +${n.act}${S.trCheck.length?` · 확인 필요 ${S.trCheck.length}`:''}`
+    :(n.ag+n.disc+n.dec+n.act?`덧붙였어요 · 안건 +${n.ag} · 논의 +${n.disc}줄 · 결정 +${n.dec} · 할 일 +${n.act}`:'새로 추가할 내용이 없었어요'));
 }
 function undoTr(){if(!trUndo)return;const keepTr=S.transcript;S=normalize(trUndo);S.transcript=keepTr;trUndo=null;fillFields();renderLists();renderTr();changed();toast('반영 전으로 되돌렸어요')}
 
